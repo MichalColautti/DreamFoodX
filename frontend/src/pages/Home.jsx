@@ -1,6 +1,5 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Button } from "../components/button";
 
 export default function Home() {
   return (
@@ -14,7 +13,7 @@ export default function Home() {
           <h1 className="text-4xl font-bold">RECIPE+</h1>
           <p className="mt-2 text-xl">Wiele przepisów. Twoje źródło inspiracji</p>
           <Link to="/register">
-            <Button className="mt-6 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white">DOŁĄCZ DO NAS</Button> 
+            <button className="button">DOŁĄCZ DO NAS</button> 
           </Link>
         </div>
       </div>
