@@ -9,6 +9,9 @@ import Favorites from "./pages/Favorites";
 import New_recipe from "./pages/New_recipe";
 import Header from "./components/Header"; // Możliwe że tu bedzie wyświetlał się błąd, ale to normalne
 import Footer from "./components/Footer";
+import Profile from "./pages/Profile";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 import "./App.css";
 
 function App() {
@@ -23,6 +26,9 @@ function App() {
         <Route path="/new-recipe" element={<New_recipe />} />
         <Route path="/user-profile" element={<User_profile />} />
         <Route path="/favorites" element={<Favorites />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
       </Routes>
       <Footer />
     </Router>

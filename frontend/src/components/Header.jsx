@@ -1,5 +1,7 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import ProfileMenu from "./ProfileMenu";
+
 function Header() {
   return (
     <header className="bg-light border-bottom sticky-top">
@@ -16,35 +18,37 @@ function Header() {
           </Link>
         </div>
         {/*Kod do wyszukiwarki */}
-        <form
-          className="d-flex align-items-center bg-light"
-          role="search"
-          onSubmit={(e) => e.preventDefault()}
-        >
-          <div className="search-wrapper w-100 bg-light position-relative">
-            <input
-              type="text"
-              placeholder="Szukaj..."
-              className="form-control border-0 border-bottom ps-5 bg-light"
-              style={{ borderRadius: 0, boxShadow: "none" }}
-            />
-            <button type="submit">
-              <svg
-                className="search-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{ width: "16px", height: "16px", color: "#555" }}
-              >
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-            </button>
-          </div>
-        </form>
+        <div className="flex-grow-1 mx-auto" style={{ maxWidth: "600px" }}>
+          <form
+            className="d-flex align-items-center bg-light"
+            role="search"
+            onSubmit={(e) => e.preventDefault()}
+          >
+            <div className="search-wrapper w-100 bg-light position-relative">
+              <input
+                type="text"
+                placeholder="Szukaj..."
+                className="form-control border-0 border-bottom ps-5 bg-light"
+                style={{ borderRadius: 0, boxShadow: "none" }}
+              />
+              <button type="submit">
+                <svg
+                  className="search-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ width: "16px", height: "16px", color: "#555" }}
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              </button>
+            </div>
+          </form>
+        </div>
         <nav className="ms-auto d-none d-lg-block">
           <ul className="nav">
             <li className="nav-item me-3">
@@ -61,20 +65,7 @@ function Header() {
         </nav>
         {/* Kod do icon */}
         <div className="d-flex align-items-center">
-          <Link to="/user-profile" className="btn btn-link p-2">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{ width: "1.2em", height: "1.2em" }}
-            >
-              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-          </Link>
+          <ProfileMenu />
           <Link to="/favorites" className="btn btn-link p-2">
             <svg
               viewBox="0 0 24 24"
