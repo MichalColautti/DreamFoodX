@@ -15,25 +15,6 @@ function Header() {
             />
           </Link>
         </div>
-        <nav className="ms-auto d-none d-lg-block">
-          <ul className="nav">
-            <li className="nav-item me-3">
-              <Link to="/category" className="nav-link">
-                Kategorie
-              </Link>
-            </li>
-            <li className="nav-item me-3">
-              <Link to="/new-products" className="nav-link">
-                Nowości
-              </Link>
-            </li>
-            <li className="nav-item me-3">
-              <Link to="/sale" className="nav-link">
-                Wyprzedaż
-              </Link>
-            </li>
-          </ul>
-        </nav>
         {/*Kod do wyszukiwarki */}
         <form
           className="d-flex align-items-center bg-light"
@@ -64,7 +45,20 @@ function Header() {
             </button>
           </div>
         </form>
-
+        <nav className="ms-auto d-none d-lg-block">
+          <ul className="nav">
+            <li className="nav-item me-3">
+              <Link to="/my-recipes" className="nav-link">
+                Moje przepisy
+              </Link>
+            </li>
+            <li className="nav-item me-3">
+              <Link to="/new-recipe" className="nav-link">
+                Dodaj nowy przepis
+              </Link>
+            </li>
+          </ul>
+        </nav>
         {/* Kod do icon */}
         <div className="d-flex align-items-center">
           <Link to="/user-profile" className="btn btn-link p-2">
@@ -94,21 +88,6 @@ function Header() {
               <path d="M12 21 L3.5 12.5 A5.5 5.5 0 0 1 11.28 4.72 L12 6.2 L12.72 4.72 A5.5 5.5 0 0 1 20.5 12.5 L12 21 Z" />
             </svg>
           </Link>
-          <button className="btn btn-link p-2">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{ width: "1.2em", height: "1.2em" }}
-            >
-              <path d="M6 2L3 6v20h18V6l-3-4z" />
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <path d="M16 10a4 4 0 0 1-8 0" />
-            </svg>
-          </button>
         </div>
       </div>
     </header>
