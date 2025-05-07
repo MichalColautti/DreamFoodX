@@ -4,7 +4,7 @@ import ProfileMenu from "./ProfileMenu";
 
 function Header() {
   return (
-    <header className="bg-light border-bottom sticky-top">
+    <header className="bg-light border-bottom sticky-top w-100">
       <div className="container d-flex justify-content-between align-items-center p-2">
         <div className="d-flex align-items-center">
           <Link to="/">
@@ -18,7 +18,7 @@ function Header() {
           </Link>
         </div>
         {/*Kod do wyszukiwarki */}
-        <div className="flex-grow-1 mx-auto" style={{ maxWidth: "600px" }}>
+        <div className="flex-grow-1">
           <form
             className="d-flex align-items-center bg-light"
             role="search"
