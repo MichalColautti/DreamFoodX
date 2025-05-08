@@ -23,7 +23,22 @@ function Register() {
       return;
     }
 
-    setMessage("nie ma polaczenia z baza danych jeszcze.");
+    try {
+      const response = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: form.username,
+          email: form.email,
+          password: form.password,
+        }),
+      });
+
+      const data = await response.json();
+      setMessage(data.message);
+    } catch (error) {
+      setMessage("Błąd połączenia z backendem.");
+    }
   };
 
   return (
