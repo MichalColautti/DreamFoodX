@@ -35,18 +35,33 @@ app.post('/api/register', async (req, res) => {
   }
 
   try {
+    const [emailResult] = await db.promise().execute(
+      'SELECT id FROM users WHERE email = ?',
+      [email]
+    );
+
+    const [usernameResult] = await db.promise().execute(
+      'SELECT id FROM users WHERE username = ?',
+      [username]
+    );
+
+    if (emailResult.length > 0 || usernameResult.length > 0) {
+      return res.status(400).json({ message: 'Login lub email już w użyciu.' });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const query = 'INSERT INTO users (username, email, password) VALUES (?, ?, ?)';
     db.query(query, [username, email, hashedPassword], (err) => {
       if (err) {
         console.error('Błąd przy zapisie:', err);
-        return res.status(500).json({ message: 'Błąd serwera' });
+        return res.status(500).json({ message: 'Błąd serwera xd' });
       }
       return res.status(201).json({ message: 'Użytkownik zarejestrowany' });
     });
   } catch (err) {
-    return res.status(500).json({ message: 'Błąd hashowania hasła' });
+    console.error('Błąd przy rejestracji:', err);
+    return res.status(500).json({ message: 'Błąd hashowania hasła '});
   }
 });
 
