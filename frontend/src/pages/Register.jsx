@@ -36,6 +36,11 @@ function Register() {
 
       const data = await response.json();
       setMessage(data.message);
+      
+      if (response.ok) {
+        localStorage.setItem("user", JSON.stringify({ username: form.username }));
+        window.location.href = "/";
+      }
     } catch (error) {
       setMessage("Błąd połączenia z backendem.");
     }
@@ -55,7 +60,7 @@ function Register() {
             value={form.username}
             onChange={handleChange}
             required
-            placeholder="login"
+            placeholder="username"
             className="w-full border border-gray-300 rounded px-3 py-2"
           />
         </div>

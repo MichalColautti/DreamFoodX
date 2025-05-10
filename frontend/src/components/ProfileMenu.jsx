@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Link } from "react-router-dom";
+import React, { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate } from "react-router-dom";
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import Grow from '@mui/material/Grow';
 import Paper from '@mui/material/Paper';
@@ -10,7 +10,14 @@ import Stack from '@mui/material/Stack';
 
 function ProfileMenu() {
     const [open, setOpen] = useState(false);
+    const [user, setUser] = useState(null);
     const anchorRef = useRef(null);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const storedUser = JSON.parse(localStorage.getItem("user"));
+        setUser(storedUser);
+    }, []);
 
     const handleToggle = () => {
         setOpen((prevOpen) => !prevOpen);
@@ -21,6 +28,13 @@ function ProfileMenu() {
             return;
         }
         setOpen(false);
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem("user");
+        setUser(null);
+        setOpen(false);
+        navigate("/");
     };
 
     return (
@@ -67,21 +81,36 @@ function ProfileMenu() {
                                         id="composition-menu"
                                         aria-labelledby="composition-button"
                                     >
-                                        <MenuItem onClick={handleClose}>
-                                            <Link to="/profile" className="nav-link">
-                                                Profil
-                                            </Link>
-                                        </MenuItem>
-                                        <MenuItem onClick={handleClose}>
-                                            <Link to="/login" className="nav-link">
-                                                Zaloguj się
-                                            </Link>
-                                        </MenuItem>
-                                        <MenuItem onClick={handleClose}>
-                                            <Link to="/register" className="nav-link">
-                                                Zarejestruj się
-                                            </Link>
-                                        </MenuItem>
+                                        {user ? (
+                                            <>
+                                                <MenuItem onClick={handleClose}>
+                                                    <Link to="/profile" className="nav-link">
+                                                        Profil
+                                                    </Link>
+                                                </MenuItem>
+                                                <MenuItem onClick={handleLogout}>
+                                                    Wyloguj się
+                                                </MenuItem>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <MenuItem onClick={handleClose}>
+                                                    <Link to="/profile" className="nav-link">
+                                                        Profil
+                                                    </Link>
+                                                </MenuItem>
+                                                <MenuItem onClick={handleClose}>
+                                                    <Link to="/login" className="nav-link">
+                                                        Zaloguj się
+                                                    </Link>
+                                                </MenuItem>
+                                                <MenuItem onClick={handleClose}>
+                                                    <Link to="/register" className="nav-link">
+                                                        Zarejestruj się
+                                                    </Link>
+                                                </MenuItem>
+                                            </>
+                                        )}
                                     </MenuList>
                                 </ClickAwayListener>
                             </Paper>
