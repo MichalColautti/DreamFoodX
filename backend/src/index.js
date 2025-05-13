@@ -1,11 +1,14 @@
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
-const bcrypt = require('bcrypt');
+const multer = require('multer');
+const path = require('path');
 const app = express();
+const bcrypt = require('bcrypt');
 
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const db = mysql.createConnection({
   host: process.env.DB_HOST || 'mysql',
@@ -95,6 +98,39 @@ app.post('/api/login', async (req, res) => {
   } catch (err) {
     console.error('Błąd przy logowaniu:', err);
     return res.status(500).json({ message: 'Błąd serwera xd' });
+  }
+});
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage });
+
+app.post('/api/recipes', upload.single('image'), async (req, res) => {
+  try {
+    const { title, description, author } = req.body;
+    const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
+
+    if (!title || !description || !author || !imagePath) {
+      return res.status(400).json({ message: 'Brak wymaganych danych.' });
+    }
+
+    const query = `
+      INSERT INTO recipes (title, description, author, image)
+      VALUES (?, ?, ?, ?)
+    `;
+    await db.promise().execute(query, [title, description, author, imagePath]);
+
+    return res.status(201).json({ message: 'Przepis dodany pomyślnie.' });
+  } catch (err) {
+    console.error('Błąd przy dodawaniu przepisu:', err);
+    res.status(500).json({ message: 'Błąd serwera przy dodawaniu przepisu.' });
   }
 });
 
