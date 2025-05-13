@@ -169,3 +169,20 @@ app.get('/api/recipes/latest', async (req, res) => {
     res.status(500).json({ message: 'Błąd serwera' });
   }
 });
+
+app.get('/api/recipes/user', async (req, res) => {
+  const username = req.query.username;
+
+  if (!username) {
+    return res.status(400).json({ message: 'Brakuje nazwy użytkownika.' });
+  }
+
+  try {
+    const query = 'SELECT * FROM recipes WHERE author = ? ORDER BY created_at DESC';
+    const [rows] = await db.promise().execute(query, [username]);
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error('Błąd przy pobieraniu przepisów użytkownika:', err);
+    res.status(500).json({ message: 'Błąd serwera przy pobieraniu przepisów użytkownika.' });
+  }
+});
