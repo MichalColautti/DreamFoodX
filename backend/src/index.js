@@ -186,3 +186,69 @@ app.get('/api/recipes/user', async (req, res) => {
     res.status(500).json({ message: 'Błąd serwera przy pobieraniu przepisów użytkownika.' });
   }
 });
+
+app.get('/api/recipes/search', async (req, res) => {
+  const { name } = req.query;
+
+  if (!name) {
+    return res.status(400).json({ message: 'Brak nazwy przepisu w zapytaniu.' });
+  }
+
+  try {
+    const query = `
+      SELECT * FROM recipes
+      WHERE title LIKE ?
+      ORDER BY created_at DESC;
+    `;
+    const [rows] = await db.promise().execute(query, [`%${name}%`]);
+    
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Nie znaleziono przepisów.' });
+    }
+
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error('Błąd przy wyszukiwanie przepisów:', err);
+    res.status(500).json({ message: 'Błąd serwera przy wyszukiwaniu przepisów.' });
+  }
+});
+
+app.get('/api/recipes/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const query = 'SELECT * FROM recipes WHERE id = ?';
+    const [rows] = await db.promise().execute(query, [id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Przepis nie znaleziony.' });
+    }
+
+    res.status(200).json(rows[0]); 
+  } catch (err) {
+    console.error('Błąd przy pobieraniu przepisu:', err);
+    res.status(500).json({ message: 'Błąd serwera przy pobieraniu przepisu.' });
+  }
+});
+
+app.post('/api/recipes/:id/rate', async (req, res) => {
+  const { id } = req.params;
+  const { rating } = req.body;
+
+  if (!rating || rating < 1 || rating > 5) {
+    return res.status(400).json({ message: 'Ocena musi być między 1 a 5' });
+  }
+
+  try {
+    const [rows] = await db.promise().execute('SELECT rating FROM recipes WHERE id = ?', [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Przepis nie istnieje' });
+    }
+
+    await db.promise().execute('UPDATE recipes SET rating = ? WHERE id = ?', [rating, id]);
+    res.status(200).json({ message: 'Ocena zapisana' });
+  } catch (err) {
+    console.error('Błąd przy ocenianiu:', err);
+    res.status(500).json({ message: 'Błąd serwera przy ocenianiu' });
+  }
+});

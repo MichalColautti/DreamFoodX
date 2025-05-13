@@ -1,15 +1,26 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import React, { useState } from "react";
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from "react-router-dom";
 import ProfileMenu from "./ProfileMenu";
 
 function Header() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?name=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery("");
+    }
+  };
+
   return (
     <header className="bg-light border-bottom sticky-top w-100">
       <div className="container d-flex justify-content-between align-items-center p-2">
         <div className="d-flex align-items-center">
           <Link to="/">
             <img
-              src="\header-logo.png"
+              src="/header-logo.png"
               alt="Kapturowo Logo"
               height="55"
               className="d-inline-block align-top me-2"
@@ -17,21 +28,27 @@ function Header() {
             />
           </Link>
         </div>
-        {/*Kod do wyszukiwarki */}
+
+        {/* Search by recipe name */}
         <div className="flex-grow-1">
           <form
             className="d-flex align-items-center bg-light"
             role="search"
-            onSubmit={(e) => e.preventDefault()}
+            onSubmit={handleSubmit}
           >
             <div className="search-wrapper w-100 bg-light position-relative">
               <input
                 type="text"
-                placeholder="Szukaj..."
+                placeholder="Szukaj przepisu..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="form-control border-0 border-bottom ps-5 bg-light"
                 style={{ borderRadius: 0, boxShadow: "none" }}
               />
-              <button type="submit">
+              <button
+                type="submit"
+                className="position-absolute top-50 start-0 translate-middle-y ps-3 pe-2 btn btn-link"
+              >
                 <svg
                   className="search-icon"
                   viewBox="0 0 24 24"
@@ -49,6 +66,7 @@ function Header() {
             </div>
           </form>
         </div>
+
         <nav className="ms-auto d-none d-lg-block">
           <ul className="nav">
             <li className="nav-item me-3">
@@ -63,7 +81,7 @@ function Header() {
             </li>
           </ul>
         </nav>
-        {/* Kod do icon */}
+
         <div className="d-flex align-items-center">
           <ProfileMenu />
           <Link to="/favorites" className="btn btn-link p-2">

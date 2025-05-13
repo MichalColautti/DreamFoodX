@@ -14,6 +14,8 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import "./App.css";
 import { AuthProvider } from "./AuthContext";
+import SearchResults from "./pages/SearchResults";
+import Recipe from './pages/Recipe';
 
 function App() {
   return (
@@ -31,6 +33,8 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/search" element={<SearchResults />} />
+          <Route path="/recipe/:id" element={<Recipe />} />
         </Routes>
         <Footer />
       </AuthProvider>
