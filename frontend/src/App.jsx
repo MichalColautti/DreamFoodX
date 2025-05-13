@@ -13,24 +13,27 @@ import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import "./App.css";
+import { AuthProvider } from "./AuthContext";
 
 function App() {
   return (
     <Router>
-      <Header />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/my-recipes" element={<My_recipes />} />
-        <Route path="/new-recipe" element={<New_recipe />} />
-        <Route path="/user-profile" element={<User_profile />} />
-        <Route path="/favorites" element={<Favorites />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-      </Routes>
-      <Footer />
+      <AuthProvider>
+        <Header />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/my-recipes" element={<My_recipes />} />
+          <Route path="/new-recipe" element={<New_recipe />} />
+          <Route path="/user-profile" element={<User_profile />} />
+          <Route path="/favorites" element={<Favorites />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+        </Routes>
+        <Footer />
+      </AuthProvider>
     </Router>
   );
 }

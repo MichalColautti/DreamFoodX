@@ -1,13 +1,14 @@
 import { useState } from "react";
+import { useAuth } from "../AuthContext";
+import { useNavigate } from "react-router-dom";
 
 function Login() {
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-  });
-
+  const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
+
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -17,23 +18,18 @@ function Login() {
     e.preventDefault();
 
     try {
-      console.log("send login");
       const response = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: form.email,
-          password: form.password,
-        }),
+        body: JSON.stringify(form),
       });
 
       const data = await response.json();
-      console.log("Response data:", data);
 
       if (response.ok) {
-        localStorage.setItem("user", JSON.stringify({ username: data.username }));
+        login(data.username); 
         setMessage("Zalogowano pomyślnie");
-        window.location.href = "/";
+        navigate("/");
       } else {
         setMessage(data.message);
       }
@@ -48,29 +44,27 @@ function Login() {
       {message && <p className="mb-4 text-center text-red-500">{message}</p>}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="mb-2">
-          <input
-            type="email"
-            name="email"
-            value={form.email}
-            onChange={handleChange}
-            required
-            placeholder="email"
-            className="w-full border border-gray-300 rounded px-3 py-2"
-          />
-        </div>
+        <input
+          type="email"
+          name="email"
+          value={form.email}
+          onChange={handleChange}
+          required
+          placeholder="email"
+          className="w-full border border-gray-300 rounded px-3 py-2"
+        />
 
-        <div className="mb-2">
-          <input
-            type={showPassword ? "text" : "password"}
-            name="password"
-            value={form.password}
-            onChange={handleChange}
-            required
-            placeholder="hasło"
-            className="w-full border border-gray-300 rounded px-3 py-2"
-          />
-        </div>
+        <br />
+
+        <input
+          type={showPassword ? "text" : "password"}
+          name="password"
+          value={form.password}
+          onChange={handleChange}
+          required
+          placeholder="hasło"
+          className="w-full border border-gray-300 rounded px-3 py-2"
+        />
 
         <div className="flex items-center">
           <input
@@ -85,10 +79,7 @@ function Login() {
           </label>
         </div>
 
-        <button
-          type="submit"
-          className="button"
-        >
+        <button type="submit" className="button">
           Zaloguj się
         </button>
       </form>

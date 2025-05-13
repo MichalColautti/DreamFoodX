@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from '../AuthContext';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import Grow from '@mui/material/Grow';
 import Paper from '@mui/material/Paper';
@@ -10,14 +11,9 @@ import Stack from '@mui/material/Stack';
 
 function ProfileMenu() {
     const [open, setOpen] = useState(false);
-    const [user, setUser] = useState(null);
     const anchorRef = useRef(null);
+    const { user, logout } = useAuth();
     const navigate = useNavigate();
-
-    useEffect(() => {
-        const storedUser = JSON.parse(localStorage.getItem("user"));
-        setUser(storedUser);
-    }, []);
 
     const handleToggle = () => {
         setOpen((prevOpen) => !prevOpen);
@@ -31,8 +27,7 @@ function ProfileMenu() {
     };
 
     const handleLogout = () => {
-        localStorage.removeItem("user");
-        setUser(null);
+        logout();
         setOpen(false);
         navigate("/");
     };
@@ -81,7 +76,7 @@ function ProfileMenu() {
                                         id="composition-menu"
                                         aria-labelledby="composition-button"
                                     >
-                                        {user ? (
+                                        {user !== null ? (
                                             <>
                                                 <MenuItem onClick={handleClose}>
                                                     <Link to="/profile" className="nav-link">
@@ -94,11 +89,6 @@ function ProfileMenu() {
                                             </>
                                         ) : (
                                             <>
-                                                <MenuItem onClick={handleClose}>
-                                                    <Link to="/profile" className="nav-link">
-                                                        Profil
-                                                    </Link>
-                                                </MenuItem>
                                                 <MenuItem onClick={handleClose}>
                                                     <Link to="/login" className="nav-link">
                                                         Zaloguj się

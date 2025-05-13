@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useAuth } from "../AuthContext";
+import { useNavigate } from "react-router-dom";
 
 function Register() {
   const [form, setForm] = useState({
@@ -10,6 +12,9 @@ function Register() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
+
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -36,10 +41,10 @@ function Register() {
 
       const data = await response.json();
       setMessage(data.message);
-      
+
       if (response.ok) {
-        localStorage.setItem("user", JSON.stringify({ username: form.username }));
-        window.location.href = "/";
+        login(form.username);
+        navigate("/");
       }
     } catch (error) {
       setMessage("Błąd połączenia z backendem.");
@@ -48,7 +53,6 @@ function Register() {
 
   return (
     <main className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-    
       <h1 className="text-3xl font-bold text-center mb-6">Rejestracja</h1>
       {message && <p className="mb-4 text-center text-red-500">{message}</p>}
 
