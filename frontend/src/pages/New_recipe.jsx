@@ -1,19 +1,29 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../AuthContext"; 
 
 function AddRecipe() {
-  const [form, setForm] = useState({ 
-    title: "", 
-    description: "", 
-    image: null 
+  const { user, logout } = useAuth();
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    image: null,
   });
   const [message, setMessage] = useState("");
   const [preview, setPreview] = useState("");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) {
+      navigate("/login");
+    }
+  }, [user, navigate]);
 
   const handleChange = (e) => {
     if (e.target.name === "image") {
       const file = e.target.files[0];
       setForm({ ...form, image: file });
-      
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreview(reader.result);
@@ -26,13 +36,16 @@ function AddRecipe() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const user = JSON.parse(localStorage.getItem("user"));
-    const author = user?.username || "anonim";
+
+    if (!user) {
+      setMessage("Musisz być zalogowany, aby dodać przepis.");
+      return;
+    }
 
     const formData = new FormData();
     formData.append("title", form.title);
     formData.append("description", form.description);
-    formData.append("author", author);
+    formData.append("author", user.username);
     if (form.image) {
       formData.append("image", form.image);
     }
@@ -42,13 +55,13 @@ function AddRecipe() {
         method: "POST",
         body: formData,
       });
-      
+
       const data = await response.json();
       if (response.ok) {
         setMessage(data.message);
         setForm({ title: "", description: "", image: null });
         setPreview("");
-        document.getElementById("image-upload").value = ""; 
+        document.getElementById("image-upload").value = "";
       } else {
         setMessage(data.message || "Wystąpił błąd podczas dodawania przepisu");
       }
@@ -63,20 +76,20 @@ function AddRecipe() {
       <h1>Dodaj przepis</h1>
       {message && <p>{message}</p>}
       <form onSubmit={handleSubmit} encType="multipart/form-data">
-        <input 
-          name="title" 
-          placeholder="Tytuł" 
+        <input
+          name="title"
+          placeholder="Tytuł"
           value={form.title}
-          onChange={handleChange} 
-          required 
+          onChange={handleChange}
+          required
         />
         <br />
-        <textarea 
-          name="description" 
-          placeholder="Opis" 
+        <textarea
+          name="description"
+          placeholder="Opis"
           value={form.description}
-          onChange={handleChange} 
-          required 
+          onChange={handleChange}
+          required
         />
         <br />
         <input
@@ -89,10 +102,10 @@ function AddRecipe() {
         />
         {preview && (
           <div>
-            <img 
-              src={preview} 
-              alt="Podgląd zdjęcia" 
-              style={{ maxWidth: "200px", maxHeight: "200px" }} 
+            <img
+              src={preview}
+              alt="Podgląd zdjęcia"
+              style={{ maxWidth: "200px", maxHeight: "200px" }}
             />
           </div>
         )}
