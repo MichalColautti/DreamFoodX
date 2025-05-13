@@ -2,6 +2,7 @@ const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
 const multer = require('multer');
+const fs = require('fs');
 const path = require('path');
 const app = express();
 const bcrypt = require('bcrypt');
@@ -136,4 +137,35 @@ app.post('/api/recipes', upload.single('image'), async (req, res) => {
 
 app.listen(5000, '0.0.0.0', () => {
   console.log('Serwer backend działa na porcie 5000');
+});
+
+app.get('/api/recipes/best', async (req, res) => {
+  try {
+    const query = `
+      SELECT * FROM recipes
+      WHERE rating IS NOT NULL
+      ORDER BY rating DESC
+      LIMIT 5; 
+      `;
+    const [rows] = await db.promise().execute(query);
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error('Błąd przy pobieraniu najlepszych przepisów:', err);
+    res.status(500).json({ message: 'Błąd serwera' });
+  }
+});
+
+app.get('/api/recipes/latest', async (req, res) => {
+  try {
+    const query = `
+      SELECT * FROM recipes
+      ORDER BY created_at DESC
+      LIMIT 5; 
+    `;
+    const [rows] = await db.promise().execute(query);
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error('Błąd przy pobieraniu najnowszych przepisów:', err);
+    res.status(500).json({ message: 'Błąd serwera' });
+  }
 });

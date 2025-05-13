@@ -1,7 +1,27 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import axios from 'axios';
 
 export default function Home() {
+  const [bestRecipes, setBestRecipes] = useState([]);
+  const [latestRecipes, setLatestRecipes] = useState([]);
+  
+  const fetchRecipes = async () => {
+    try {
+      const bestResponse = await axios.get('/api/recipes/best');
+      setBestRecipes(bestResponse.data);
+
+      const latestResponse = await axios.get('/api/recipes/latest');
+      setLatestRecipes(latestResponse.data);
+    } catch (error) {
+      console.error("Błąd przy pobieraniu przepisów:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecipes(); 
+  }, []);
+
   return (
     <div className="font-sans text-gray-800">
       {/* mainPageTopImg */}
@@ -43,13 +63,46 @@ export default function Home() {
       {/* Najlepsze przepisy */}
       <div className="bg-gray-100 py-10">
         <h3 className="text-2xl text-center font-bold mb-6">Najlepsze przepisy</h3>
+        <div className="grid md:grid-cols-3 gap-8">
+          {bestRecipes.length > 0 ? (
+            bestRecipes.map((recipe) => (
+              <div key={recipe.id} className="bg-white rounded-lg shadow-lg p-6">
+                <img
+                  src={recipe.image} 
+                  alt={'cant load img: ' + recipe.image}
+                  className="w-full h-40 object-cover rounded-lg mb-4"
+                />
+                <h4 className="text-xl font-semibold">{recipe.title}</h4>
+                <p className="text-gray-600 text-sm">{recipe.description}</p>
+              </div>
+            ))
+          ) : (
+            <p>Brak najlepszych przepisów.</p>
+          )}
+        </div>
       </div>
 
       {/* Najnowsze przepisy */}
       <div className="bg-gray-100 py-10">
         <h3 className="text-2xl text-center font-bold mb-6">Najnowsze przepisy</h3>
+        <div className="grid md:grid-cols-3 gap-8">
+          {latestRecipes.length > 0 ? (
+            latestRecipes.map((recipe) => (
+              <div key={recipe.id} className="bg-white rounded-lg shadow-lg p-6">
+                <img
+                  src={recipe.image}
+                  alt={recipe.title}
+                  className="w-full h-40 object-cover rounded-lg mb-4"
+                />
+                <h4 className="text-xl font-semibold">{recipe.title}</h4>
+                <p className="text-gray-600 text-sm">{recipe.description}</p>
+              </div>
+            ))
+          ) : (
+            <p>Brak najnowszych przepisów.</p>
+          )}
+        </div>
       </div>
-    
     </div>
   );
 }
