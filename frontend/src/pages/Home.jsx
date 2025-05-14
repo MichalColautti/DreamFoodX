@@ -61,46 +61,55 @@ export default function Home() {
       </div>
 
       {/* Najlepsze przepisy */}
-      <div className="bg-gray-100 py-10">
-        <h3 className="text-2xl text-center font-bold mb-6">Najlepsze przepisy</h3>
-        <div className="grid md:grid-cols-3 gap-8">
-          {bestRecipes.length > 0 ? (
-            bestRecipes.map((recipe) => (
-              <div key={recipe.id} className="bg-white rounded-lg shadow-lg p-6">
-                <img
-                  src={recipe.image} 
-                  alt={'cant load img: ' + recipe.image}
-                  className="w-full h-40 object-cover rounded-lg mb-4"
-                />
-                <h4 className="text-xl font-semibold">{recipe.title}</h4>
-                <p className="text-gray-600 text-sm">{recipe.description}</p>
-              </div>
-            ))
-          ) : (
-            <p>Brak najlepszych przepisów.</p>
-          )}
+      <div className="container mt-4">
+        <h3 className="text-2xl text-center font-bold mb-4">Najlepsze przepisy</h3>
+        <div className="row">
+          {bestRecipes.slice(0, 4).map((recipe) => (
+            <div key={recipe.id} className="col-md-3 mb-4">
+              <a href={`/recipe/${recipe.id}`} className="card-link text-decoration-none">
+                <div className="card">
+                  {recipe.image && (
+                    <img
+                      src={recipe.image}
+                      className="card-img-top"
+                      alt={recipe.title}
+                      style={{ objectFit: 'cover', height: '200px' }}
+                    />
+                  )}
+                  <div className="card-body">
+                    <h5 className="card-title text-center">{recipe.title}</h5>
+                  </div>
+                </div>
+              </a>
+            </div>
+          ))}
         </div>
       </div>
 
+
       {/* Najnowsze przepisy */}
-      <div className="bg-gray-100 py-10">
-        <h3 className="text-2xl text-center font-bold mb-6">Najnowsze przepisy</h3>
-        <div className="grid md:grid-cols-3 gap-8">
-          {latestRecipes.length > 0 ? (
-            latestRecipes.map((recipe) => (
-              <div key={recipe.id} className="bg-white rounded-lg shadow-lg p-6">
-                <img
-                  src={recipe.image}
-                  alt={recipe.title}
-                  className="w-full h-40 object-cover rounded-lg mb-4"
-                />
-                <h4 className="text-xl font-semibold">{recipe.title}</h4>
-                <p className="text-gray-600 text-sm">{recipe.description}</p>
-              </div>
-            ))
-          ) : (
-            <p>Brak najnowszych przepisów.</p>
-          )}
+      <div className="container mt-4">
+        <h3 className="text-2xl text-center font-bold mb-4">Najnowsze przepisy</h3>
+        <div className="row">
+          {latestRecipes.slice(0, 4).map((recipe) => (
+            <div key={recipe.id} className="col-md-3 mb-4">
+              <a href={`/recipe/${recipe.id}`} className="card-link text-decoration-none">
+                <div className="card">
+                  {recipe.image && (
+                    <img
+                      src={recipe.image}
+                      className="card-img-top"
+                      alt={recipe.title}
+                      style={{ objectFit: 'cover', height: '200px' }}
+                    />
+                  )}
+                  <div className="card-body">
+                    <h5 className="card-title text-center">{recipe.title}</h5>
+                  </div>
+                </div>
+              </a>
+            </div>
+          ))}
         </div>
       </div>
     </div>
