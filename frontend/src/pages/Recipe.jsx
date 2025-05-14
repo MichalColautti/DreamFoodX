@@ -1,41 +1,55 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
+import { useAuth } from '../AuthContext';  
 
 function Recipe() {
   const { id } = useParams();
+  const { user } = useAuth();  
   const [recipe, setRecipe] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [userRating, setUserRating] = useState(
-    localStorage.getItem(`rated_value_${id}`) || 0
-  );
+  const [userRating, setUserRating] = useState(null);  
+  const [error, setError] = useState(null); 
 
   const handleRating = useCallback(async (star) => {
-    if (localStorage.getItem(`rated_${id}`)) {
-      alert('Już oceniłeś ten przepis.');
-      return;
+    if (!user) {
+        alert('Zaloguj się, aby ocenić przepis!');
+        return;
     }
 
     try {
-      const response = await fetch(`/api/recipes/${id}/rate`, {
+        const responseCheck = await fetch(`/api/recipes/${id}/check-already-rated?username=${user.username}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (responseCheck.ok) {
+        const dataCheck = await responseCheck.json();
+        if (dataCheck.alreadyRated) {
+            alert('Już oceniłeś ten przepis.');
+            return;
+        }
+        } else {
+        throw new Error('Błąd przy sprawdzaniu oceny.');
+        }
+
+        const response = await fetch(`/api/recipes/${id}/rate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rating: star }),
-      });
+        body: JSON.stringify({ rating: star, username: user.username }),  
+        });
 
-      if (response.ok) {
+        if (response.ok) {
         const updated = await response.json();
-        setRecipe((prev) => ({ ...prev, rating: updated.rating }));
-        localStorage.setItem(`rated_${id}`, 'true');
-        localStorage.setItem(`rated_value_${id}`, star);
-        setUserRating(star);
-      } else {
+        setRecipe((prev) => ({ ...prev, rating: updated.rating, ratingCount: updated.ratingCount }));
+        setUserRating(star); 
+        } else {
         alert('Błąd przy ocenianiu.');
-      }
+        }
     } catch (err) {
-      console.error('Błąd przy ocenianiu:', err);
-      alert('Wystąpił błąd.');
+        console.error('Błąd przy ocenianiu:', err);
+        setError('Wystąpił błąd przy ocenianiu'); 
     }
-  }, [id]);
+    }, [id, user]);
 
   useEffect(() => {
     const fetchRecipe = async () => {
@@ -50,6 +64,7 @@ function Recipe() {
       } catch (error) {
         console.error('Błąd przy pobieraniu przepisu:', error);
         setRecipe(null);
+        setError('Wystąpił błąd przy pobieraniu przepisu.');  
       } finally {
         setLoading(false);
       }
@@ -58,11 +73,35 @@ function Recipe() {
     fetchRecipe();
   }, [id]);
 
+  useEffect(() => {
+    const fetchUserRating = async () => {
+      if (user) {
+        try {
+          const response = await fetch(`/api/recipes/${id}/user-rating?username=${user.username}`);
+          if (response.ok) {
+            const data = await response.json();
+            setUserRating(data.rating || null);
+          } else {
+            setUserRating(null);
+          }
+        } catch (error) {
+          console.error('Błąd przy sprawdzaniu oceny użytkownika:', error);
+        }
+      }
+    };
+
+    fetchUserRating();
+  }, [id, user]);
+
   if (loading) return <p>Ładowanie przepisu...</p>;
+
   if (!recipe) return <p>Nie znaleziono przepisu.</p>;
+
+  const rating = recipe.rating && !isNaN(recipe.rating) ? parseFloat(recipe.rating) : 0;
 
   return (
     <div className="container mt-4">
+      {error && <p style={{ color: 'red' }}>{error}</p>}  
       <h2>{recipe.title}</h2>
       {recipe.image && (
         <img
@@ -83,7 +122,7 @@ function Recipe() {
               key={star}
               style={{
                 fontSize: '2rem',
-                cursor: localStorage.getItem(`rated_${id}`) ? 'default' : 'pointer',
+                cursor: userRating === null ? 'pointer' : 'default',
                 color: star <= userRating ? 'gold' : '#ccc',
                 transition: 'color 0.2s',
               }}
@@ -93,8 +132,10 @@ function Recipe() {
             </span>
           ))}
         </div>
-        {recipe.rating > 0 && (
-          <p className="mt-2 text-muted">Średnia ocena: {recipe.rating.toFixed(1)} / 5</p>
+        {rating > 0 ? (
+            <p className="mt-2 text-muted">Średnia ocena: {rating.toFixed(1)} ({recipe.ratingCount} ocen)</p>
+        ) : (
+            <p className="mt-2 text-muted">Brak ocen</p>
         )}
       </div>
     </div>

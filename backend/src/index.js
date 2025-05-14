@@ -98,7 +98,7 @@ app.post('/api/login', async (req, res) => {
     return res.status(200).json({ message: 'Zalogowano pomyślnie', username: user.username });
   } catch (err) {
     console.error('Błąd przy logowaniu:', err);
-    return res.status(500).json({ message: 'Błąd serwera xd' });
+    return res.status(500).json({ message: 'Błąd serwera' });
   }
 });
 
@@ -231,24 +231,114 @@ app.get('/api/recipes/:id', async (req, res) => {
   }
 });
 
-app.post('/api/recipes/:id/rate', async (req, res) => {
+app.get('/api/recipes/:id/check-already-rated', async (req, res) => {
   const { id } = req.params;
-  const { rating } = req.body;
+  const { username } = req.query;  
 
-  if (!rating || rating < 1 || rating > 5) {
-    return res.status(400).json({ message: 'Ocena musi być między 1 a 5' });
+  if (!username) {
+    return res.status(400).json({ message: 'Brak nazwy użytkownika' });
   }
 
   try {
-    const [rows] = await db.promise().execute('SELECT rating FROM recipes WHERE id = ?', [id]);
-    if (rows.length === 0) {
-      return res.status(404).json({ message: 'Przepis nie istnieje' });
+    const [ratingCheck] = await db.promise().execute(
+      'SELECT * FROM ratings WHERE recipe_id = ? AND user_id = (SELECT id FROM users WHERE username = ?)',
+      [id, username]
+    );
+
+    if (ratingCheck.length > 0) {
+      return res.status(200).json({ alreadyRated: true });
+    } else {
+      return res.status(200).json({ alreadyRated: false });
+    }
+  } catch (err) {
+    console.error('Błąd przy sprawdzaniu oceny:', err);
+    return res.status(500).json({ message: 'Błąd serwera' });
+  }
+});
+
+app.get('/api/recipes/:id/user-rating', async (req, res) => {
+  const { id } = req.params;
+  const username = req.query.username;
+
+  if (!username) {
+    return res.status(400).json({ message: 'Brakuje nazwy użytkownika' });
+  }
+
+  try {
+    const [userResult] = await db.promise().execute(
+      'SELECT id FROM users WHERE username = ?',
+      [username]
+    );
+
+    if (userResult.length === 0) {
+      return res.status(404).json({ message: 'Użytkownik nie znaleziony' });
     }
 
-    await db.promise().execute('UPDATE recipes SET rating = ? WHERE id = ?', [rating, id]);
-    res.status(200).json({ message: 'Ocena zapisana' });
+    const userId = userResult[0].id;
+
+    const [ratingResult] = await db.promise().execute(
+      'SELECT rating FROM ratings WHERE user_id = ? AND recipe_id = ?',
+      [userId, id]
+    );
+
+    if (ratingResult.length > 0) {
+      return res.status(200).json({ rating: ratingResult[0].rating });
+    } else {
+      return res.status(200).json({ rating: null });
+    }
   } catch (err) {
-    console.error('Błąd przy ocenianiu:', err);
-    res.status(500).json({ message: 'Błąd serwera przy ocenianiu' });
+    console.error('Błąd przy pobieraniu oceny użytkownika:', err);
+    res.status(500).json({ message: 'Błąd serwera' });
+  }
+});
+
+app.post('/api/recipes/:id/rate', async (req, res) => {
+  const { id } = req.params;
+  const { rating, username } = req.body;
+
+  if (!rating || !username) {
+    return res.status(400).json({ message: 'Brak wymaganych danych' });
+  }
+
+  try {
+    const [existingRating] = await db.promise().execute(
+      'SELECT * FROM ratings WHERE user_id = (SELECT id FROM users WHERE username = ?) AND recipe_id = ?',
+      [username, id]
+    );
+
+    if (existingRating.length > 0) {
+      return res.status(400).json({ message: 'Już oceniłeś ten przepis.' });
+    }
+
+    const [userResult] = await db.promise().execute(
+      'SELECT id FROM users WHERE username = ?',
+      [username]
+    );
+
+    const userId = userResult[0].id;
+
+    await db.promise().execute(
+      'INSERT INTO ratings (user_id, recipe_id, rating) VALUES (?, ?, ?)',
+      [userId, id, rating]
+    );
+
+    const [ratings] = await db.promise().execute(
+      'SELECT rating FROM ratings WHERE recipe_id = ?',
+      [id]
+    );
+
+    const totalRatings = ratings.length;
+    const sumRatings = ratings.reduce((sum, row) => sum + row.rating, 0);
+    const averageRating = (sumRatings / totalRatings).toFixed(1);
+
+    await db.promise().execute(
+      'UPDATE recipes SET rating = ? WHERE id = ?',
+      [averageRating, id]
+    );
+
+    return res.status(200).json({ rating: averageRating, ratingCount: totalRatings });
+  } catch (err) {
+    console.error('Błąd przy ocenianiu przepisu:', err);
+    return res.status(500).json({ message: 'Błąd serwera' });
   }
 });

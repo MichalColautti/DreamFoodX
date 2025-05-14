@@ -14,3 +14,13 @@ CREATE TABLE IF NOT EXISTS recipes (
   rating FLOAT DEFAULT 0,
   image VARCHAR(255)
 );
+
+CREATE TABLE IF NOT EXISTS ratings (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  recipe_id INT NOT NULL,
+  rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  UNIQUE(user_id, recipe_id),
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  FOREIGN KEY (recipe_id) REFERENCES recipes(id)
+);

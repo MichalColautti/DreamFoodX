@@ -86,7 +86,6 @@ export default function Home() {
         </div>
       </div>
 
-
       {/* Najnowsze przepisy */}
       <div className="container mt-4">
         <h3 className="text-2xl text-center font-bold mb-4">Najnowsze przepisy</h3>
