@@ -21,26 +21,34 @@ function MyRecipes() {
   if (error) return <p>{error}</p>;
 
   return (
-    <main>
-      <h1 className="text-2xl font-bold mb-4">Moje przepisy</h1>
+    <div className="container mt-4">
+      <h1 className="text-2xl font-bold mb-4 text-center">Moje przepisy</h1>
       {recipes.length === 0 ? (
         <p>Brak przepisów.</p>
       ) : (
-        <ul className="space-y-2">
+        <div className="row">
           {recipes.map((recipe) => (
-            <li key={recipe.id} className="p-4 border rounded">
-              <h2 className="text-lg font-semibold">{recipe.title}</h2>
-              <p>{recipe.description}</p>
-              <img
-                src={recipe.image}
-                alt={recipe.title}
-                className="mt-2 max-w-xs"
-              />
-            </li>
+            <div key={recipe.id} className="col-md-3 mb-4">
+              <a href={`/recipe/${recipe.id}`} className="card-link text-decoration-none">
+                <div className="card h-100">
+                  {recipe.image && (
+                    <img
+                      src={recipe.image}
+                      className="card-img-top"
+                      alt={recipe.title}
+                      style={{ objectFit: "cover", height: "200px" }}
+                    />
+                  )}
+                  <div className="card-body">
+                    <h5 className="card-title text-center">{recipe.title}</h5>
+                  </div>
+                </div>
+              </a>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
-    </main>
+    </div>
   );
 }
 
