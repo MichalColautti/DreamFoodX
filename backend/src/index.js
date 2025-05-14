@@ -31,6 +31,7 @@ function connectWithRetry() {
 
 connectWithRetry();
 
+// Endpoint do rejestracji
 app.post('/api/register', async (req, res) => {
   console.log('recived register req:',req);
   const { username, email, password } = req.body;
@@ -70,6 +71,7 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
+// Endpoint do logowania
 app.post('/api/login', async (req, res) => {
   console.log('recived login req:',req.body);
   const { email, password } = req.body;
@@ -113,6 +115,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// Dodawanie przepisu
 app.post('/api/recipes', upload.single('image'), async (req, res) => {
   try {
     const { title, description, author } = req.body;
@@ -139,6 +142,7 @@ app.listen(5000, '0.0.0.0', () => {
   console.log('Serwer backend działa na porcie 5000');
 });
 
+// Pobieranie najwyżej ocenianych przepisów
 app.get('/api/recipes/best', async (req, res) => {
   try {
     const query = `
@@ -155,6 +159,7 @@ app.get('/api/recipes/best', async (req, res) => {
   }
 });
 
+// Pobieranie najnowszych przepisów
 app.get('/api/recipes/latest', async (req, res) => {
   try {
     const query = `
@@ -170,6 +175,7 @@ app.get('/api/recipes/latest', async (req, res) => {
   }
 });
 
+// Pobieranie przepisów użytkownika
 app.get('/api/recipes/user', async (req, res) => {
   const username = req.query.username;
 
@@ -187,6 +193,7 @@ app.get('/api/recipes/user', async (req, res) => {
   }
 });
 
+// Pobieranie przepisów z po wyszukiwaniu
 app.get('/api/recipes/search', async (req, res) => {
   const { name } = req.query;
 
@@ -213,6 +220,7 @@ app.get('/api/recipes/search', async (req, res) => {
   }
 });
 
+// Pobieranie przepisu po ID
 app.get('/api/recipes/:id', async (req, res) => {
   const { id } = req.params;
 
@@ -231,6 +239,7 @@ app.get('/api/recipes/:id', async (req, res) => {
   }
 });
 
+// Pobieranie czy juz oceniliśmy przepis
 app.get('/api/recipes/:id/check-already-rated', async (req, res) => {
   const { id } = req.params;
   const { username } = req.query;  
@@ -256,6 +265,7 @@ app.get('/api/recipes/:id/check-already-rated', async (req, res) => {
   }
 });
 
+// Pobieranie oceny użytkownika
 app.get('/api/recipes/:id/user-rating', async (req, res) => {
   const { id } = req.params;
   const username = req.query.username;
@@ -292,6 +302,7 @@ app.get('/api/recipes/:id/user-rating', async (req, res) => {
   }
 });
 
+// Dodawanie oceny
 app.post('/api/recipes/:id/rate', async (req, res) => {
   const { id } = req.params;
   const { rating, username } = req.body;
@@ -342,3 +353,115 @@ app.post('/api/recipes/:id/rate', async (req, res) => {
     return res.status(500).json({ message: 'Błąd serwera' });
   }
 });
+
+// Dodawanie do ulubionych
+app.post('/api/recipes/:id/favorite', async (req, res) => {
+  const { username } = req.body;  
+  const { id: recipeId } = req.params;
+
+  if (!username || !recipeId) {
+    return res.status(400).json({ message: 'Brak wymaganych danych (username lub recipeId)' });
+  }
+
+  try {
+    const [user] = await db.promise().execute('SELECT id FROM users WHERE username = ?', [username]);
+    if (!user.length) return res.status(404).json({ message: 'Użytkownik nie znaleziony' });
+
+    await db.promise().execute(
+      'INSERT IGNORE INTO favorites (user_id, recipe_id) VALUES (?, ?)',
+      [user[0].id, recipeId]  
+    );
+
+    res.status(200).json({ message: 'Dodano do ulubionych' });
+  } catch (err) {
+    console.error('Błąd przy dodawaniu do ulubionych:', err);
+    res.status(500).json({ message: 'Błąd serwera' });
+  }
+});
+
+// Usuwanie z ulubionych
+app.delete('/api/recipes/:id/favorite', async (req, res) => {
+  const { username } = req.body; 
+  const { id: recipeId } = req.params;
+
+  console.log('Otrzymane dane:', { username, recipeId });
+
+  if (!username || !recipeId) {
+    return res.status(400).json({ message: 'Brak wymaganych danych (username lub recipeId)' });
+  }
+
+  try {
+    const [user] = await db.promise().execute('SELECT id FROM users WHERE username = ?', [username]);
+    if (!user.length) return res.status(404).json({ message: 'Użytkownik nie znaleziony' });
+
+    const result = await db.promise().execute(
+      'DELETE FROM favorites WHERE user_id = ? AND recipe_id = ?',
+      [user[0].id, recipeId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Przepis nie jest w ulubionych' });
+    }
+
+    res.status(200).json({ message: 'Usunięto z ulubionych' });
+  } catch (err) {
+    console.error('Błąd przy usuwaniu z ulubionych:', err);
+    res.status(500).json({ message: 'Błąd serwera' });
+  }
+});
+
+// Sprawdzanie czy przepis jest ulubiony
+app.get('/api/recipes/:id/is-favorite', async (req, res) => {
+  const { username } = req.query;
+  const { id: recipeId } = req.params;
+
+  try {
+    const [user] = await db.promise().execute('SELECT id FROM users WHERE username = ?', [username]);
+    if (!user.length) return res.status(404).json({ message: 'Użytkownik nie znaleziony' });
+
+    const [result] = await db.promise().execute(
+      'SELECT 1 FROM favorites WHERE user_id = ? AND recipe_id = ?',
+      [user[0].id, recipeId]
+    );
+
+    res.status(200).json({ isFavorite: result.length > 0 });
+  } catch (err) {
+    console.error('Błąd przy sprawdzaniu ulubionych:', err);
+    res.status(500).json({ message: 'Błąd serwera' });
+  }
+});
+
+// Pobieranie ulubionych przepisów użytkownika
+app.get('/api/recipes/get-favorites', async (req, res) => {
+  const { username } = req.query;
+
+  console.log('Zapytanie do /get-favorites', req.query); // Logowanie parametrów zapytania
+
+  if (!username) {
+    return res.status(400).json({ message: 'Brak nazwy użytkownika' });
+  }
+
+  try {
+    // Zapytanie do bazy danych pobierające ulubione przepisy
+    const [favorites] = await db.promise().execute(`
+      SELECT r.id, r.title, r.description, r.image
+      FROM favorites f
+      JOIN recipes r ON f.recipe_id = r.id
+      JOIN users u ON f.user_id = u.id
+      WHERE u.username = ?`,
+      [username]
+    );
+
+    // Jeśli brak ulubionych przepisów
+    if (favorites.length === 0) {
+      return res.status(204).json([]);  // Używamy 204 dla braku treści
+    }
+
+    // Zwrócenie wyników
+    res.status(200).json(favorites);
+  } catch (err) {
+    console.error('Błąd przy pobieraniu ulubionych przepisów:', err);
+    res.status(500).json({ message: 'Błąd serwera' });
+  }
+});
+

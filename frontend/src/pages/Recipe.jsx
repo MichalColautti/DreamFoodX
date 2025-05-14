@@ -9,6 +9,7 @@ function Recipe() {
   const [loading, setLoading] = useState(true);
   const [userRating, setUserRating] = useState(null);  
   const [error, setError] = useState(null); 
+  const [isFavorite, setIsFavorite] = useState(false);
 
   const handleRating = useCallback(async (star) => {
     if (!user) {
@@ -93,6 +94,50 @@ function Recipe() {
     fetchUserRating();
   }, [id, user]);
 
+  useEffect(() => {
+    const fetchFavoriteStatus = async () => {
+      if (user) {
+        try {
+          const response = await fetch(`/api/recipes/${id}/is-favorite?username=${user.username}`);
+          if (response.ok) {
+            const data = await response.json();
+            setIsFavorite(data.isFavorite);
+          }
+        } catch (error) {
+          console.error('Błąd przy sprawdzaniu ulubionych:', error);
+        }
+      }
+    };
+
+    fetchFavoriteStatus();
+  }, [id, user]);
+
+  const toggleFavorite = async () => {
+    if (!user) {
+        alert('Zaloguj się, aby dodawać do ulubionych!');
+        return;
+    }
+
+    const method = isFavorite ? 'DELETE' : 'POST';
+
+    try {
+        const response = await fetch(`/api/recipes/${id}/favorite`, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: user.username }),  
+        });
+
+        if (response.ok) {
+            setIsFavorite(!isFavorite);
+        } else {
+            alert('Błąd przy aktualizacji ulubionych');
+        }
+    } catch (err) {
+        console.error('Błąd:', err);
+    }
+  };
+
+
   if (loading) return <p>Ładowanie przepisu...</p>;
 
   if (!recipe) return <p>Nie znaleziono przepisu.</p>;
@@ -113,6 +158,13 @@ function Recipe() {
       )}
       <p>{recipe.description}</p>
       <p><strong>Autor:</strong> {recipe.author}</p>
+      
+      <div className="mt-3">
+        <button onClick={toggleFavorite} className="btn btn-outline-primary">
+          {isFavorite ? 'Usuń z ulubionych' : 'Dodaj do ulubionych'}
+        </button>
+      </div>
+
 
       <div className="mt-4">
         <h5>Oceń przepis:</h5>
