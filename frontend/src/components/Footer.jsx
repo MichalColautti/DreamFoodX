@@ -39,11 +39,6 @@ function Footer() {
               </li>
               <li>
                 <Link to="" className="text-muted">
-                  Tabele rozmiarowe
-                </Link>
-              </li>
-              <li>
-                <Link to="" className="text-muted">
                   Kontakt
                 </Link>
               </li>
