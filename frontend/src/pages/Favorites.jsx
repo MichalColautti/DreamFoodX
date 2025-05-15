@@ -16,7 +16,7 @@ function Favorites() {
 
     const fetchFavorites = async () => {
       try {
-      const response = await fetch(`/api/recipes/get-favorites?username=${user.username}`);
+        const response = await fetch(`/api/favorites/get-favorites?username=${user.username}`);
         if (response.ok) {
           const data = await response.json();
           setFavorites(data);  
@@ -25,7 +25,6 @@ function Favorites() {
         }
       } catch (error) {
         console.error('Błąd przy pobieraniu ulubionych przepisów:', error);
-        setError('Wystąpił błąd przy ładowaniu ulubionych');
       } finally {
         setLoading(false);
       }
@@ -41,7 +40,7 @@ function Favorites() {
   if (favorites.length === 0) return <p>{user.username}Nie masz żadnych ulubionych przepisów.</p>;
 
   return (
-    <div className="container mt-4">
+    <div className="container mt-4 text-center">
       <h2>Twoje ulubione przepisy</h2>
       <div className="row">
         {favorites.map((recipe) => (

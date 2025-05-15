@@ -138,10 +138,6 @@ app.post('/api/recipes', upload.single('image'), async (req, res) => {
   }
 });
 
-app.listen(5000, '0.0.0.0', () => {
-  console.log('Serwer backend działa na porcie 5000');
-});
-
 // Pobieranie najwyżej ocenianych przepisów
 app.get('/api/recipes/best', async (req, res) => {
   try {
@@ -432,17 +428,14 @@ app.get('/api/recipes/:id/is-favorite', async (req, res) => {
 });
 
 // Pobieranie ulubionych przepisów użytkownika
-app.get('/api/recipes/get-favorites', async (req, res) => {
+app.get('/api/favorites/get-favorites', async (req, res) => {
   const { username } = req.query;
-
-  console.log('Zapytanie do /get-favorites', req.query); // Logowanie parametrów zapytania
 
   if (!username) {
     return res.status(400).json({ message: 'Brak nazwy użytkownika' });
   }
 
   try {
-    // Zapytanie do bazy danych pobierające ulubione przepisy
     const [favorites] = await db.promise().execute(`
       SELECT r.id, r.title, r.description, r.image
       FROM favorites f
@@ -452,12 +445,10 @@ app.get('/api/recipes/get-favorites', async (req, res) => {
       [username]
     );
 
-    // Jeśli brak ulubionych przepisów
     if (favorites.length === 0) {
-      return res.status(204).json([]);  // Używamy 204 dla braku treści
+      return res.status(204).json([]);  
     }
 
-    // Zwrócenie wyników
     res.status(200).json(favorites);
   } catch (err) {
     console.error('Błąd przy pobieraniu ulubionych przepisów:', err);
@@ -465,3 +456,6 @@ app.get('/api/recipes/get-favorites', async (req, res) => {
   }
 });
 
+app.listen(5000, '0.0.0.0', () => {
+  console.log('Serwer backend działa na porcie 5000');
+});
