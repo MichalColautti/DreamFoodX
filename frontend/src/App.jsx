@@ -16,6 +16,7 @@ import "./App.css";
 import { AuthProvider } from "./AuthContext";
 import SearchResults from "./pages/SearchResults";
 import Recipe from './pages/Recipe';
+import Edit_recipe from './pages/EditRecipe';
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/search" element={<SearchResults />} />
           <Route path="/recipe/:id" element={<Recipe />} />
+          <Route path="/recipes/:id/edit" element={<Edit_recipe />} />
         </Routes>
         <Footer />
       </AuthProvider>

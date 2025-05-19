@@ -116,27 +116,27 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Dodawanie przepisu
-app.post('/api/recipes', upload.single('image'), async (req, res) => {
-  try {
-    const { title, description, author } = req.body;
-    const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
+// app.post('/api/recipes', upload.single('image'), async (req, res) => {
+//   try {
+//     const { title, description, author } = req.body;
+//     const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
 
-    if (!title || !description || !author || !imagePath) {
-      return res.status(400).json({ message: 'Brak wymaganych danych.' });
-    }
+//     if (!title || !description || !author || !imagePath) {
+//       return res.status(400).json({ message: 'Brak wymaganych danych.' });
+//     }
 
-    const query = `
-      INSERT INTO recipes (title, description, author, image)
-      VALUES (?, ?, ?, ?)
-    `;
-    await db.promise().execute(query, [title, description, author, imagePath]);
+//     const query = `
+//       INSERT INTO recipes (title, description, author, image)
+//       VALUES (?, ?, ?, ?)
+//     `;
+//     await db.promise().execute(query, [title, description, author, imagePath]);
 
-    return res.status(201).json({ message: 'Przepis dodany pomyślnie.' });
-  } catch (err) {
-    console.error('Błąd przy dodawaniu przepisu:', err);
-    res.status(500).json({ message: 'Błąd serwera przy dodawaniu przepisu.' });
-  }
-});
+//     return res.status(201).json({ message: 'Przepis dodany pomyślnie.' });
+//   } catch (err) {
+//     console.error('Błąd przy dodawaniu przepisu:', err);
+//     res.status(500).json({ message: 'Błąd serwera przy dodawaniu przepisu.' });
+//   }
+// });
 
 // Pobieranie najwyżej ocenianych przepisów
 app.get('/api/recipes/best', async (req, res) => {
@@ -218,20 +218,45 @@ app.get('/api/recipes/search', async (req, res) => {
 
 // Pobieranie przepisu po ID
 app.get('/api/recipes/:id', async (req, res) => {
-  const { id } = req.params;
+  const recipeId = req.params.id;
 
   try {
-    const query = 'SELECT * FROM recipes WHERE id = ?';
-    const [rows] = await db.promise().execute(query, [id]);
-
-    if (rows.length === 0) {
+    const [recipeResults] = await db.promise().execute(
+      'SELECT id, title, description, author, image FROM recipes WHERE id = ?',
+      [recipeId]
+    );
+    if (recipeResults.length === 0) {
       return res.status(404).json({ message: 'Przepis nie znaleziony.' });
     }
+    const recipe = recipeResults[0];
 
-    res.status(200).json(rows[0]); 
+    const [ingredientResults] = await db.promise().execute(
+      'SELECT name, amount, unit FROM ingredients WHERE recipe_id = ?',
+      [recipeId]
+    );
+    recipe.ingredients = ingredientResults.map((row) => ({
+      name: row.name,
+      amount: row.amount,
+      unit: row.unit,
+    }));
+
+    const [stepResults] = await db.promise().execute(
+      'SELECT step_order, action, description, temperature, blade_speed, duration FROM steps WHERE recipe_id = ? ORDER BY step_order',
+      [recipeId]
+    );
+    recipe.steps = stepResults.map((row) => ({
+      order: row.step_order,
+      action: row.action,
+      description: row.description,
+      temperature: row.temperature,
+      bladeSpeed: row.blade_speed,
+      duration: row.duration,
+    }));
+
+    res.json(recipe);
   } catch (err) {
-    console.error('Błąd przy pobieraniu przepisu:', err);
-    res.status(500).json({ message: 'Błąd serwera przy pobieraniu przepisu.' });
+    console.error('Błąd serwera:', err);
+    res.status(500).json({ message: 'Błąd serwera.' });
   }
 });
 
@@ -453,6 +478,143 @@ app.get('/api/favorites/get-favorites', async (req, res) => {
   } catch (err) {
     console.error('Błąd przy pobieraniu ulubionych przepisów:', err);
     res.status(500).json({ message: 'Błąd serwera' });
+  }
+});
+
+// Dodawanie przepisu
+app.post('/api/recipes', upload.single('image'), async (req, res) => {
+  const { title, author, description } = req.body;
+
+  try {
+    const ingredients = JSON.parse(req.body.ingredients || '[]'); 
+    const steps = JSON.parse(req.body.steps || '[]');
+    const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
+
+    if (!title || !author || !description) {
+      return res.status(400).json({ message: 'Brakuje wymaganych danych.' });
+    }
+
+    const [recipeResult] = await db.promise().execute(
+      'INSERT INTO recipes (title, description, author, image) VALUES (?, ?, ?, ?)',
+      [title, description, author, imagePath]
+    );
+    const recipeId = recipeResult.insertId;
+
+    for (const ingredient of ingredients) {
+      await db.promise().execute(
+        'INSERT INTO ingredients (recipe_id, name, amount, unit) VALUES (?, ?, ?, ?)',
+        [recipeId, ingredient.name, ingredient.amount || null, ingredient.unit || null]
+      );
+    }
+
+    for (let i = 0; i < steps.length; i++) {
+      const step = steps[i];
+      await db.promise().execute(
+        `INSERT INTO steps
+          (recipe_id, step_order, action, description, temperature, blade_speed, duration)
+          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          recipeId,
+          i + 1,
+          step.action,
+          step.description,
+          step.temperature || null,
+          step.bladeSpeed || null,
+          step.duration || null,
+        ]
+      );
+    }
+
+    res.status(201).json({ message: 'Przepis dodany!', recipeId });
+  } catch (err) {
+    console.error('Błąd serwera:', err);
+    res.status(500).json({ message: 'Błąd serwera.' });
+  }
+});
+
+// Pobieranie kategorii i składników
+app.get("/api/ingredients/categories", async (req, res) => {
+  try {
+    const [categories] = await db.promise().execute(
+      "SELECT id, name FROM ingredient_categories ORDER BY name"
+    );
+
+    const categoriesWithItems = await Promise.all(
+      categories.map(async (category) => {
+        const [ingredients] = await db.promise().execute(
+          "SELECT name FROM catalog_ingredients WHERE category_id = ? ORDER BY name",
+          [category.id]
+        );
+        return {
+          id: category.id,
+          name: category.name,
+          items: ingredients.map((i) => i.name),
+        };
+      })
+    );
+
+    res.json(categoriesWithItems);
+  } catch (error) {
+    console.error("Błąd pobierania kategorii i składników:", error);
+    res.status(500).json({ message: "Błąd serwera" });
+  }
+});
+
+// Edytowanie przepisu
+app.put("/api/recipes/:id", upload.single("image"), async (req, res) => {
+  const recipeId = req.params.id;
+  const { title, description, ingredients, steps } = req.body;
+
+  try {
+    const updateQuery = `
+      UPDATE recipes
+      SET title = ?, description = ?${req.file ? ", image = ?" : ""}
+      WHERE id = ?
+    `;
+    const updateParams = req.file
+      ? [title, description, `/uploads/${req.file.filename}`, recipeId]
+      : [title, description, recipeId];
+
+    await db.promise().execute(updateQuery, updateParams);
+
+    await db.promise().execute("DELETE FROM ingredients WHERE recipe_id = ?", [
+      recipeId,
+    ]);
+    await db.promise().execute("DELETE FROM steps WHERE recipe_id = ?", [
+      recipeId,
+    ]);
+
+    const parsedIngredients = JSON.parse(ingredients);
+    for (const ing of parsedIngredients) {
+      await db.promise().execute(
+        "INSERT INTO ingredients (recipe_id, name, amount, unit) VALUES (?, ?, ?, ?)",
+        [recipeId, ing.name, ing.amount, ing.unit]
+      );
+    }
+
+    const parsedSteps = JSON.parse(steps);
+    for (let i = 0; i < parsedSteps.length; i++) {
+      const step = parsedSteps[i];
+      await db.promise().execute(
+        `INSERT INTO steps
+           (recipe_id, step_order, action, description, temperature, blade_speed, duration)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          recipeId,
+          i + 1,
+          step.action,
+          step.description,
+          step.temperature,
+          step.bladeSpeed,
+          step.duration,
+        ]
+      );
+    }
+
+    res.json({ message: "Przepis zaktualizowany!" });
+  } catch (err) {
+    console.error("Błąd edycji:", err);
+    res.status(500).json({ message: "Błąd serwera." });
   }
 });
 

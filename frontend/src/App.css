@@ -112,3 +112,24 @@ main {
   background-color: #f05e0f;
   transform: scale(1.05);
 }
+
+.small-button {
+  padding: 4px 8px;
+  font-size: 14px;
+  margin-right: 6px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.small-button:hover:enabled {
+  background-color: #0056b3;
+}
+
+.small-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
