@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Link,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
 import ProfileMenu from "./ProfileMenu";
 
 function Header() {
@@ -57,7 +64,12 @@ function Header() {
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  style={{ width: "16px", height: "16px", color: "#555" }}
+                  style={{
+                    width: "16px",
+                    height: "16px",
+                    color: "#555",
+                    minWidth: "16px",
+                  }}
                 >
                   <circle cx="11" cy="11" r="8" />
                   <line x1="21" y1="21" x2="16.65" y2="16.65" />
