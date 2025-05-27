@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../AuthContext";
 import { useNavigate } from "react-router-dom";
+import "bootstrap/dist/css/bootstrap.min.css"; // Don't forget to import Bootstrap CSS
 
 function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -27,7 +28,7 @@ function Login() {
       const data = await response.json();
 
       if (response.ok) {
-        login(data.username); 
+        login(data.username);
         setMessage("Zalogowano pomyślnie");
         navigate("/");
       } else {
@@ -39,47 +40,67 @@ function Login() {
   };
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <h1 className="text-3xl font-bold text-center mb-6">Logowanie</h1>
-      {message && <p className="mb-4 text-center text-red-500">{message}</p>}
+    <main
+      className="d-flex flex-column align-items-center justify-content-center  bg-light"
+      style={{ minHeight: "70vh" }}
+    >
+      {/* Increased margin-bottom for the heading using mb-4 */}
+      <h1 className="text-3xl font-bold text-center mb-4">Logowanie</h1>
+      {/* Increased margin-bottom for message using mb-3 */}
+      {message && <p className="mb-3 text-center text-danger">{message}</p>}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="email"
-          name="email"
-          value={form.email}
-          onChange={handleChange}
-          required
-          placeholder="email"
-          className="w-full border border-gray-300 rounded px-3 py-2"
-        />
+      {/* Used Bootstrap's form-group for better input grouping and added padding with p-4 and shadow */}
+      {/* Used Bootstrap's w-100 (width 100%) and max-width classes for form width */}
+      <form
+        onSubmit={handleSubmit}
+        className="p-4 shadow bg-white rounded"
+        style={{ maxWidth: "400px", width: "100%" }}
+      >
+        {/* Added mb-3 for margin-bottom between form elements */}
+        <div className="mb-3">
+          <input
+            type="email"
+            name="email"
+            value={form.email}
+            onChange={handleChange}
+            required
+            placeholder="email"
+            className="form-control" // Bootstrap's input styling
+          />
+        </div>
 
-        <br />
+        <div className="mb-3">
+          <input
+            type={showPassword ? "text" : "password"}
+            name="password"
+            value={form.password}
+            onChange={handleChange}
+            required
+            placeholder="hasło"
+            className="form-control" // Bootstrap's input styling
+          />
+        </div>
 
-        <input
-          type={showPassword ? "text" : "password"}
-          name="password"
-          value={form.password}
-          onChange={handleChange}
-          required
-          placeholder="hasło"
-          className="w-full border border-gray-300 rounded px-3 py-2"
-        />
-
-        <div className="flex items-center">
+        <div className="form-check mb-0">
+          {" "}
+          {/* Bootstrap's form-check for checkbox */}
           <input
             id="showPassword"
             type="checkbox"
             checked={showPassword}
             onChange={() => setShowPassword(!showPassword)}
-            className="mr-2"
+            className="form-check-input" // Bootstrap's checkbox styling
           />
-          <label htmlFor="showPassword" className="text-sm text-gray-600">
+          <label
+            htmlFor="showPassword"
+            className="form-check-label text-secondary"
+          >
             Pokaż hasło
           </label>
         </div>
 
-        <button type="submit" className="button">
+        {/* Used Bootstrap's btn and btn-warning for the button styling */}
+        <button type="submit" className="btn  w-100 button ">
           Zaloguj się
         </button>
       </form>

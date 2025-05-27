@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../AuthContext";
 import { useNavigate } from "react-router-dom";
+import "bootstrap/dist/css/bootstrap.min.css"; // Import Bootstrap CSS
 
 function Register() {
   const [form, setForm] = useState({
@@ -52,24 +53,39 @@ function Register() {
   };
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <h1 className="text-3xl font-bold text-center mb-6">Rejestracja</h1>
-      {message && <p className="mb-4 text-center text-red-500">{message}</p>}
+    // Apply Bootstrap classes for centering and background
+    <main
+      className="d-flex flex-column align-items-center justify-content-center bg-light py-5"
+      style={{ minHeight: "70vh" }} // Consistent height with Login
+    >
+      {/* Consistent heading styling */}
+      <h1 className="text-3xl font-bold text-center mb-4">Rejestracja</h1>
+      {/* Consistent message styling */}
+      {message && <p className="mb-3 text-center text-danger">{message}</p>}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="mb-2">
+      {/* Form container styling for card-like appearance */}
+      <form
+        onSubmit={handleSubmit}
+        className="p-4 shadow bg-white rounded"
+        style={{ maxWidth: "400px", width: "100%" }} // Consistent width
+      >
+        {/* Username input */}
+        <div className="mb-3">
           <input
             type="text"
             name="username"
             value={form.username}
             onChange={handleChange}
             required
-            placeholder="username"
-            className="w-full border border-gray-300 rounded px-3 py-2"
+            placeholder="nazwa użytkownika"
+            className="form-control"
           />
         </div>
 
-        <div className="mb-2">
+        {/* Email input */}
+        <div className="mb-3">
+          {" "}
+          {/* Consistent margin-bottom */}
           <input
             type="email"
             name="email"
@@ -77,11 +93,14 @@ function Register() {
             onChange={handleChange}
             required
             placeholder="email"
-            className="w-full border border-gray-300 rounded px-3 py-2"
+            className="form-control"
           />
         </div>
 
-        <div className="mb-2">
+        {/* Password input */}
+        <div className="mb-3">
+          {" "}
+          {/* Consistent margin-bottom */}
           <input
             type={showPassword ? "text" : "password"}
             name="password"
@@ -89,11 +108,14 @@ function Register() {
             onChange={handleChange}
             required
             placeholder="hasło"
-            className="w-full border border-gray-300 rounded px-3 py-2"
+            className="form-control"
           />
         </div>
 
-        <div className="mb-2">
+        {/* Confirm Password input */}
+        <div className="mb-3">
+          {" "}
+          {/* Consistent margin-bottom */}
           <input
             type={showPassword ? "text" : "password"}
             name="confirmPassword"
@@ -101,26 +123,33 @@ function Register() {
             onChange={handleChange}
             required
             placeholder="powtórz hasło"
-            className="w-full border border-gray-300 rounded px-3 py-2"
+            className="form-control"
           />
         </div>
 
-        <div className="flex items-center">
+        {/* Show Password checkbox */}
+        <div className="form-check mb-0">
+          {" "}
+          {/* Consistent margin-bottom and Bootstrap styling */}
           <input
             id="showPassword"
             type="checkbox"
             checked={showPassword}
             onChange={() => setShowPassword(!showPassword)}
-            className="mr-2"
+            className="form-check-input"
           />
-          <label htmlFor="showPassword" className="text-sm text-gray-600">
+          <label
+            htmlFor="showPassword"
+            className="form-check-label text-secondary"
+          >
             Pokaż hasło
           </label>
         </div>
 
+        {/* Register button */}
         <button
           type="submit"
-          className="button"
+          className="btn button w-100" // Consistent button styling
         >
           Zarejestruj się
         </button>
