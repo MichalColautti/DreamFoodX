@@ -184,6 +184,34 @@ function AddRecipe() {
       setMessage("Błąd połączenia z serwerem.");
     }
   };
+
+  const handleImportFromJson = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+
+        if (!data.title || !data.description || !Array.isArray(data.ingredients) || !Array.isArray(data.steps)) {
+          setMessage("Nieprawidłowy format pliku JSON.");
+          return;
+        }
+
+        setForm({ title: data.title, description: data.description, image: null });
+        setIngredientList(data.ingredients);
+        setSteps(data.steps);
+        setPreview("");
+        setMessage("Dane zaimportowane z pliku JSON.");
+      } catch (error) {
+        console.error("Błąd parsowania JSON:", error);
+        setMessage("Błąd parsowania pliku JSON.");
+      }
+    };
+    reader.readAsText(file);
+  };
+
 return (
     <main style={styles.main}>
       <h1 style={styles.title}>Dodaj przepis</h1>
@@ -381,6 +409,12 @@ return (
         <button type="submit" style={{ ...styles.button, marginTop: 20 }}>
           Dodaj
         </button>
+          <input
+          type="file"
+          accept="application/json"
+          onChange={handleImportFromJson}
+          style={{ marginTop: 10, marginBottom: 10 }}
+        />
       </form>
     </main>
   );

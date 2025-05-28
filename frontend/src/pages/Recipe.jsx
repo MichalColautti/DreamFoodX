@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import { saveAs } from 'file-saver';
 
 function Recipe() {
   const { id } = useParams();
@@ -55,6 +56,23 @@ function Recipe() {
     },
     [id, user]
   );
+
+  const handleExportToJSON = () => {
+    if (!recipe) return;
+
+    const recipeToExport = {
+      title: recipe.title,
+      description: recipe.description,
+      author: recipe.author,
+      ingredients: recipe.ingredients,
+      steps: recipe.steps,
+    };
+
+    const blob = new Blob([JSON.stringify(recipeToExport, null, 2)], {
+      type: 'application/json',
+    });
+    saveAs(blob, `${recipe.title || 'przepis'}.json`);
+  };
 
   useEffect(() => {
     const fetchRecipe = async () => {
@@ -261,6 +279,12 @@ function Recipe() {
             <p className="mt-2 text-muted">Brak ocen</p>
           )}
         </div>
+      </div>
+
+      <div className="mt-4">
+        <button className="btn btn-outline-success" onClick={handleExportToJSON}>
+          Eksportuj do JSON
+        </button>
       </div>
     </div>
   );
