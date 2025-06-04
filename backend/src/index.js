@@ -533,6 +533,31 @@ app.post('/api/recipes', upload.single('image'), async (req, res) => {
   }
 });
 
+// Usuwanie przepisu
+app.delete('/api/recipes/:id', async (req, res) => {
+  const recipeId = req.params.id;
+
+  try {    
+    // Usuwanie ocen
+    await db.promise().execute('DELETE FROM ratings WHERE recipe_id = ?', [recipeId]);
+
+    // Usunięcie z ulubionych
+    await db.promise().execute('DELETE FROM favorites WHERE recipe_id = ?', [recipeId]);
+
+    // Usunięcie przepisu
+    const [result] = await db.promise().execute('DELETE FROM recipes WHERE id = ?', [recipeId]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Nie znaleziono przepisu do usunięcia.' });
+    }
+
+    res.json({ message: 'Przepis został usunięty.' });
+  } catch (err) {
+    console.error('Błąd przy usuwaniu przepisu:', err);
+    res.status(500).json({ message: 'Błąd serwera przy usuwaniu przepisu.' });
+  }
+});
+
 // Pobieranie kategorii i składników
 app.get("/api/ingredients/categories", async (req, res) => {
   try {

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { saveAs } from 'file-saver';
 import { Modal, Button } from 'react-bootstrap';
 
 function Recipe() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [recipe, setRecipe] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -77,6 +78,28 @@ function Recipe() {
       type: 'application/json',
     });
     saveAs(blob, `${recipe.title || 'przepis'}.json`);
+  };
+
+  const handleDeleteRecipe = async () => {
+    const confirmDelete = window.confirm('Czy na pewno chcesz usunąć ten przepis?');
+    if (!confirmDelete) return;
+
+    try {
+      const response = await fetch(`/api/recipes/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        alert('Przepis został usunięty.');
+        window.location.href = '/'; 
+      } else {
+        const data = await response.json();
+        alert(`Błąd: ${data.message || 'Nie udało się usunąć przepisu.'}`);
+      }
+    } catch (err) {
+      console.error('Błąd przy usuwaniu:', err);
+      alert('Błąd połączenia z serwerem.');
+    }
   };
 
   useEffect(() => {
@@ -199,7 +222,7 @@ function Recipe() {
 
   const rating =
     recipe.rating && !isNaN(recipe.rating) ? parseFloat(recipe.rating) : 0;
-  
+
   return (
     <div className="container my-5">
       {error && <div className="alert alert-danger">{error}</div>}
@@ -221,12 +244,20 @@ function Recipe() {
         <p>
           <strong>Autor:</strong> {recipe.author}
           {user && user.username === recipe.author && (
-            <Link
-              to={`/recipes/${id}/edit`}
-              className="btn btn-sm btn-outline-secondary ms-3"
-            >
-              Edytuj przepis
-            </Link>
+            <span className="ms-3">
+              <Link
+                to={`/recipes/${id}/edit`}
+                className="btn btn-sm btn-outline-secondary me-2"
+              >
+                Edytuj przepis
+              </Link>
+              <button
+                className="btn btn-sm btn-outline-danger"
+                onClick={handleDeleteRecipe}
+              >
+                Usuń przepis
+              </button>
+            </span>
           )}
         </p>
 
@@ -315,10 +346,11 @@ function Recipe() {
       </div>
 
       <div className="mt-4">
-        <button className="btn btn-outline-success" onClick={handleExportToJSON}>
+        <button className="btn btn-outline-success me-2" onClick={handleExportToJSON}>
           Eksportuj do JSON
         </button>
       </div>
+
       <div className="mt-3">
         <button className="btn btn-outline-warning" onClick={() => {
           setCurrentStepIndex(0);
@@ -328,83 +360,82 @@ function Recipe() {
         </button>
       </div>
 
-      
-  <Modal show={showSlideshow} onHide={() => setShowSlideshow(false)} centered size="lg">
-    <Modal.Header closeButton>
-      <Modal.Title>Krok {currentStepIndex + 1} z {recipe?.steps?.length}</Modal.Title>
-    </Modal.Header>
-    <Modal.Body>
-      {recipe?.steps?.[currentStepIndex] ? (
-        <div>
-          <h5>{recipe.steps[currentStepIndex].action}</h5>
-          <p>{recipe.steps[currentStepIndex].description}</p>
+      <Modal show={showSlideshow} onHide={() => setShowSlideshow(false)} centered size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Krok {currentStepIndex + 1} z {recipe?.steps?.length}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {recipe?.steps?.[currentStepIndex] ? (
+            <div>
+              <h5>{recipe.steps[currentStepIndex].action}</h5>
+              <p>{recipe.steps[currentStepIndex].description}</p>
 
-          <ul>
-            {recipe.steps[currentStepIndex].temperature && (
-              <li>Temperatura: {recipe.steps[currentStepIndex].temperature}°C</li>
-            )}
-            {recipe.steps[currentStepIndex].bladeSpeed && (
-              <li>Prędkość ostrzy: {recipe.steps[currentStepIndex].bladeSpeed}</li>
-            )}
-            {recipe.steps[currentStepIndex].duration && (
-              <li>
-                Czas: {timer !== null ? (
-                  <strong>{formatTime(timer)}</strong>
-                ) : (
-                  formatTime(recipe.steps[currentStepIndex].duration)
+              <ul>
+                {recipe.steps[currentStepIndex].temperature && (
+                  <li>Temperatura: {recipe.steps[currentStepIndex].temperature}°C</li>
                 )}
-              </li>
-            
-            )}
-          </ul>
+                {recipe.steps[currentStepIndex].bladeSpeed && (
+                  <li>Prędkość ostrzy: {recipe.steps[currentStepIndex].bladeSpeed}</li>
+                )}
+                {recipe.steps[currentStepIndex].duration && (
+                  <li>
+                    Czas: {timer !== null ? (
+                      <strong>{formatTime(timer)}</strong>
+                    ) : (
+                      formatTime(recipe.steps[currentStepIndex].duration)
+                    )}
+                  </li>
+                )}
+              </ul>
+              <Button
+                variant="success"
+                onClick={() => {
+                  setIsStepTimerRunning(false);
+                  setTimer(recipe?.steps?.[currentStepIndex]?.duration || 0);
+                  setTimeout(() => setIsStepTimerRunning(true), 50);
+                }}
+              >
+                Start
+              </Button>
+            </div>
+          ) : (
+            <p>Brak danych kroku.</p>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
           <Button
-            variant="success"
+            variant="secondary"
             onClick={() => {
+              setCurrentStepIndex((prev) => Math.max(0, prev - 1));
               setIsStepTimerRunning(false);
-              setTimer(recipe?.steps?.[currentStepIndex]?.duration || 0);
-              setTimeout(() => setIsStepTimerRunning(true), 50);
+              setTimer(null);
             }}
+            disabled={currentStepIndex === 0}
           >
-            Start
+            Poprzedni
           </Button>
-        </div>
-      ) : (
-        <p>Brak danych kroku.</p>
-      )}
-    </Modal.Body>
-      <Modal.Footer>
-        <Button
-          variant="secondary"
-          onClick={() => {
-            setCurrentStepIndex((prev) => Math.max(0, prev - 1));
-            setIsStepTimerRunning(false);
-            setTimer(null);
-          }}
-          disabled={currentStepIndex === 0}
-        >
-          Poprzedni
-        </Button>
 
-        <Button
-          variant="primary"
-          onClick={() => {
-            setCurrentStepIndex((prev) => Math.min(recipe.steps.length - 1, prev + 1));
+          <Button
+            variant="primary"
+            onClick={() => {
+              setCurrentStepIndex((prev) => Math.min(recipe.steps.length - 1, prev + 1));
+              setIsStepTimerRunning(false);
+              setTimer(null);
+            }}
+            disabled={currentStepIndex >= recipe.steps.length - 1}
+          >
+            Następny
+          </Button>
+
+          <Button variant="danger" onClick={() => {
+            setShowSlideshow(false);
             setIsStepTimerRunning(false);
             setTimer(null);
-          }}
-          disabled={currentStepIndex >= recipe.steps.length - 1}
-        >
-          Następny
-        </Button>
-        <Button variant="danger" onClick={() => {
-          setShowSlideshow(false);
-          setIsStepTimerRunning(false);
-          setTimer(null);
-        }}>
-          Zakończ
-        </Button>
-      </Modal.Footer>
-    </Modal>
+          }}>
+            Zakończ
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }
