@@ -22,12 +22,12 @@ function EditRecipe() {
 
   const [steps, setSteps] = useState([]);
   const [currentStepAction, setCurrentStepAction] = useState("");
-  const [currentStepDescription, setCurrentStepDescription] = useState("");
+  const [currentStepDescription, setCurrentStepDescription] = "";
   const [temperature, setTemperature] = useState("");
   const [bladeSpeed, setBladeSpeed] = useState("");
   const [duration, setDuration] = useState("");
 
-  const allowedUnits = ["g", "ml", "l","szt"];
+  const allowedUnits = ["g", "ml", "l", "szt"];
 
   useEffect(() => {
     if (!user) {
@@ -101,11 +101,13 @@ function EditRecipe() {
 
     if (!name) return setMessage("Proszę wybrać lub wpisać składnik.");
 
-    const qtyPattern = /^(\d+(?:\.\d+)?)(g|ml|l)?$/;
+    const qtyPattern = /^(\d+(?:\.\d+)?)(g|ml|l|szt)?$/;
     const match = qty.match(qtyPattern);
     if (!match) {
       return setMessage(
-        `Gramatura musi mieć format liczba + opcjonalna jednostka (${allowedUnits.join(", ")})`
+        `Gramatura musi mieć format liczba + opcjonalna jednostka (${allowedUnits.join(
+          ", "
+        )})`
       );
     }
 
@@ -143,6 +145,7 @@ function EditRecipe() {
         temperature: temperature ? parseInt(temperature) : null,
         bladeSpeed: bladeSpeed ? parseInt(bladeSpeed) : null,
         duration: duration ? parseInt(duration) * 60 : null,
+        order: steps.length + 1,
       },
     ]);
 
@@ -154,12 +157,22 @@ function EditRecipe() {
     setMessage("");
   };
 
+  const handleRemoveStep = (indexToRemove) => {
+    const updatedSteps = steps.filter((_, idx) => idx !== indexToRemove);
+    const reorderedSteps = updatedSteps.map((step, idx) => ({
+      ...step,
+      order: idx + 1,
+    }));
+    setSteps(reorderedSteps);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!user) return setMessage("Musisz być zalogowany.");
 
-    if (ingredientList.length === 0) return setMessage("Dodaj przynajmniej jeden składnik.");
+    if (ingredientList.length === 0)
+      return setMessage("Dodaj przynajmniej jeden składnik.");
     if (steps.length === 0) return setMessage("Dodaj przynajmniej jeden krok.");
 
     const formData = new FormData();
@@ -173,7 +186,8 @@ function EditRecipe() {
     }));
 
     formData.append("ingredients", JSON.stringify(parsedIngredients));
-    formData.append("steps", JSON.stringify(steps));
+    const stepsToSend = steps.map((step, idx) => ({ ...step, order: idx + 1 }));
+    formData.append("steps", JSON.stringify(stepsToSend));
     if (form.image) formData.append("image", form.image);
 
     try {
@@ -197,9 +211,9 @@ function EditRecipe() {
 
   if (unauthorized) {
     return (
-      <main style={{ maxWidth: 700, margin: "auto", padding: 20 }}>
-        <h1>Brak dostępu</h1>
-        <p style={{ color: "red" }}>
+      <main className="container my-5">
+        <h1 className="mb-3">Brak dostępu</h1>
+        <p className="text-danger">
           Nie masz uprawnień do edycji tego przepisu.
         </p>
       </main>
@@ -207,251 +221,368 @@ function EditRecipe() {
   }
 
   return (
-    <main style={{ maxWidth: 700, margin: "auto", padding: 20 }}>
-      <h1>Edytuj przepis</h1>
-      {message && <p style={{ color: "red" }}>{message}</p>}
-
+    <main className="container my-5">
+      <h1 className="mb-4">Edytuj przepis</h1>
+      {message && (
+        <div className="alert alert-danger" role="alert">
+          {message}
+        </div>
+      )}
       <form onSubmit={handleSubmit} encType="multipart/form-data">
-        <input
-          name="title"
-          placeholder="Tytuł przepisu"
-          value={form.title}
-          onChange={handleChange}
-          required
-          style={{ width: "100%", padding: 8, marginBottom: 10 }}
-        />
-
-        <textarea
-          name="description"
-          placeholder="Opis przepisu"
-          value={form.description}
-          onChange={handleChange}
-          rows={4}
-          style={{ width: "100%", padding: 8, marginBottom: 10 }}
-        />
-
-        {/* Składniki */}
-        <h2>Składniki</h2>
-        <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
-          <select
-            onChange={(e) => {
-              const categoryName = e.target.value;
-              setSelectedCategory(categoryName);
-              const category = categories.find((c) => c.name === categoryName);
-              setIngredients(category ? category.items : []);
-              setSelectedIngredient("");
-            }}
-            value={selectedCategory}
-            style={{ flex: 1 }}
-          >
-            <option value="">Wybierz kategorię</option>
-            {categories.map((cat) => (
-              <option key={cat.name} value={cat.name}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={selectedIngredient}
-            onChange={(e) => setSelectedIngredient(e.target.value)}
-            style={{ flex: 1 }}
-          >
-            <option value="">Wybierz składnik</option>
-            {ingredients.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+        <div className="mb-3">
+          <label htmlFor="title" className="form-label">
+            Tytuł przepisu
+          </label>
           <input
             type="text"
-            placeholder="Własny składnik"
-            value={customIngredient}
-            onChange={(e) => setCustomIngredient(e.target.value)}
-            style={{ flex: 1 }}
+            className="form-control"
+            id="title"
+            name="title"
+            placeholder="Tytuł przepisu"
+            value={form.title}
+            onChange={handleChange}
+            required
           />
-          <input
-            type="text"
-            placeholder="Gramatura (np. 200g)"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            style={{ flex: 1 }}
-          />
-          <button type="button" onClick={handleAddIngredient}>
-            Dodaj składnik
-          </button>
+        </div>
+        <div className="mb-3">
+          <label htmlFor="description" className="form-label">
+            Opis przepisu
+          </label>
+          <textarea
+            className="form-control"
+            id="description"
+            name="description"
+            placeholder="Opis przepisu"
+            value={form.description}
+            onChange={handleChange}
+            rows="4"
+          ></textarea>
         </div>
 
-        {ingredientList.map((ing, idx) => (
-          <div key={idx} style={{ display: "flex", gap: 10, marginBottom: 5 }}>
-            <input
-              type="text"
-              value={ing.name}
-              onChange={(e) => {
-                const newList = [...ingredientList];
-                newList[idx].name = e.target.value;
-                setIngredientList(newList);
-              }}
-              style={{ flex: 2 }}
-            />
-            <input
-              type="number"
-              placeholder="Ilość"
-              value={ing.amount}
-              onChange={(e) => {
-                const newList = [...ingredientList];
-                newList[idx].amount = parseFloat(e.target.value);
-                setIngredientList(newList);
-              }}
-              style={{ flex: 1 }}
-            />
+        {/* Ingredients */}
+        <h2 className="mt-4 mb-3">Składniki</h2>
+        <div className="row g-3 mb-3">
+          <div className="col-md-6">
             <select
-              value={ing.unit}
+              className="form-select"
               onChange={(e) => {
-                const newList = [...ingredientList];
-                newList[idx].unit = e.target.value;
-                setIngredientList(newList);
+                const categoryName = e.target.value;
+                setSelectedCategory(categoryName);
+                const category = categories.find(
+                  (c) => c.name === categoryName
+                );
+                setIngredients(category ? category.items : []);
+                setSelectedIngredient("");
               }}
-              style={{ flex: 1 }}
+              value={selectedCategory}
             >
-              <option value="">brak</option>
-              {allowedUnits.map((u) => (
-                <option key={u} value={u}>{u}</option>
+              <option value="">Wybierz kategorię</option>
+              {categories.map((cat) => (
+                <option key={cat.name} value={cat.name}>
+                  {cat.name}
+                </option>
               ))}
             </select>
+          </div>
+          <div className="col-md-6">
+            <select
+              className="form-select"
+              value={selectedIngredient}
+              onChange={(e) => setSelectedIngredient(e.target.value)}
+            >
+              <option value="">Wybierz składnik</option>
+              {ingredients.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="row g-3 mb-3">
+          <div className="col-md-5">
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Własny składnik"
+              value={customIngredient}
+              onChange={(e) => setCustomIngredient(e.target.value)}
+            />
+          </div>
+          <div className="col-md-4">
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Gramatura (np. 200g)"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+            />
+          </div>
+          <div className="col-md-3">
             <button
               type="button"
-              onClick={() =>
-                setIngredientList(ingredientList.filter((_, i) => i !== idx))
-              }
-              style={{
-                backgroundColor: "#ff4d4d",
-                color: "#fff",
-                border: "none",
-                padding: "4px 10px",
-                borderRadius: 4,
-              }}
+              className="btn btn-primary w-100"
+              onClick={handleAddIngredient}
             >
-              Usuń
+              Dodaj składnik
             </button>
           </div>
-        ))}
-
-        {/* Kroki */}
-        <h2>Kroki przygotowania</h2>
-        <select
-          value={currentStepAction}
-          onChange={(e) => setCurrentStepAction(e.target.value)}
-          style={{ width: "100%", padding: 8, marginBottom: 5 }}
-        >
-          <option value="">Wybierz czynność</option>
-          <option value="siekanie">Siekanie</option>
-          <option value="mieszanie">Mieszanie</option>
-          <option value="gotowanie">Gotowanie</option>
-          <option value="pieczenie">Pieczenie</option>
-          <option value="smażenie">Smażenie</option>
-        </select>
-        <textarea
-          placeholder="Opis czynności"
-          value={currentStepDescription}
-          onChange={(e) => setCurrentStepDescription(e.target.value)}
-          rows={3}
-          style={{ width: "100%", padding: 8, marginBottom: 10 }}
-        />
-        <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
-          <input
-            type="number"
-            placeholder="Temperatura (°C)"
-            value={temperature}
-            onChange={(e) => setTemperature(e.target.value)}
-            style={{ flex: 1 }}
-          />
-          <input
-            type="number"
-            placeholder="Prędkość noża (0–10)"
-            value={bladeSpeed}
-            onChange={(e) => setBladeSpeed(e.target.value)}
-            style={{ flex: 1 }}
-          />
-          <input
-            type="number"
-            placeholder="Czas (min)"
-            value={duration}
-            onChange={(e) => setDuration(e.target.value)}
-            style={{ flex: 1 }}
-          />
         </div>
-        <button type="button" onClick={handleAddStep} style={{ marginBottom: 20 }}>
+
+        {ingredientList.length > 0 && (
+          <ul className="list-group mb-4">
+            {ingredientList.map((ing, idx) => (
+              <li
+                key={idx}
+                className="list-group-item d-flex justify-content-between align-items-center"
+                style={{ listStyleType: "none" }}
+              >
+                <div className="row flex-grow-1 align-items-center g-2">
+                  <div className="col-md-5">
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      value={ing.name}
+                      onChange={(e) => {
+                        const newList = [...ingredientList];
+                        newList[idx].name = e.target.value;
+                        setIngredientList(newList);
+                      }}
+                    />
+                  </div>
+                  <div className="col-md-3">
+                    <input
+                      type="number"
+                      className="form-control form-control-sm"
+                      placeholder="Ilość"
+                      value={ing.amount}
+                      onChange={(e) => {
+                        const newList = [...ingredientList];
+                        newList[idx].amount = parseFloat(e.target.value);
+                        setIngredientList(newList);
+                      }}
+                    />
+                  </div>
+                  <div className="col-md-2">
+                    <select
+                      className="form-select form-select-sm"
+                      value={ing.unit}
+                      onChange={(e) => {
+                        const newList = [...ingredientList];
+                        newList[idx].unit = e.target.value;
+                        setIngredientList(newList);
+                      }}
+                    >
+                      <option value="">brak</option>
+                      {allowedUnits.map((u) => (
+                        <option key={u} value={u}>
+                          {u}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-danger btn-sm ms-3"
+                  onClick={() =>
+                    setIngredientList(
+                      ingredientList.filter((_, i) => i !== idx)
+                    )
+                  }
+                >
+                  Usuń
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* Steps */}
+        <h2 className="mt-4 mb-3">Kroki przygotowania</h2>
+        <div className="mb-3">
+          <label htmlFor="stepAction" className="form-label">
+            Czynność
+          </label>
+          <select
+            className="form-select"
+            id="stepAction"
+            value={currentStepAction}
+            onChange={(e) => setCurrentStepAction(e.target.value)}
+          >
+            <option value="">Wybierz czynność</option>
+            <option value="siekanie">Siekanie</option>
+            <option value="mieszanie">Mieszanie</option>
+            <option value="gotowanie">Gotowanie</option>
+            <option value="pieczenie">Pieczenie</option>
+            <option value="smażenie">Smażenie</option>
+          </select>
+        </div>
+        <div className="mb-3">
+          <label htmlFor="stepDescription" className="form-label">
+            Opis czynności
+          </label>
+          <textarea
+            className="form-control"
+            id="stepDescription"
+            placeholder="Opis czynności"
+            value={currentStepDescription}
+            onChange={(e) => setCurrentStepDescription(e.target.value)}
+            rows="3"
+          ></textarea>
+        </div>
+
+        <div className="row g-3 mb-3">
+          <div className="col-md-4">
+            <input
+              type="number"
+              className="form-control"
+              placeholder="Temperatura (°C)"
+              value={temperature}
+              onChange={(e) => setTemperature(e.target.value)}
+            />
+          </div>
+          <div className="col-md-4">
+            <input
+              type="number"
+              className="form-control"
+              placeholder="Prędkość noża (0–10)"
+              value={bladeSpeed}
+              onChange={(e) => setBladeSpeed(e.target.value)}
+            />
+          </div>
+          <div className="col-md-4">
+            <input
+              type="number"
+              className="form-control"
+              placeholder="Czas (min)"
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="btn btn-secondary mb-4"
+          onClick={handleAddStep}
+        >
           Dodaj krok
         </button>
 
-        <ol>
-          {steps.map((step, idx) => (
-            <li key={idx} style={{ marginBottom: 10 }}>
-              <strong>{step.action}</strong>: {step.description}
-              {step.temperature !== null && ` | Temp: ${step.temperature}°C`}
-              {step.bladeSpeed !== null && ` | Prędkość: ${step.bladeSpeed}`}
-              {step.duration !== null && ` | Czas: ${Math.round(step.duration / 60)} min`}
-              <br />
-              <div style={{ display: "flex", gap: 5, marginTop: 5 }}>
-                <button
+        {steps.length > 0 && (
+          <ol className="list-group  mb-4">
+            {steps.map((step, idx) => (
+              <li key={idx} className="list-group-item">
+                <div className="d-flex w-100 justify-content-between">
+                  <h5 className="mb-1">
+                    Krok {idx + 1}: {step.action}
+                  </h5>
+                  <small className="text-muted">
+                    {step.temperature !== null &&
+                      `Temp: ${step.temperature}°C `}
+                    {step.bladeSpeed !== null &&
+                      `Prędkość: ${step.bladeSpeed} `}
+                    {step.duration !== null &&
+                      `Czas: ${Math.round(step.duration / 60)} min`}
+                  </small>
+                </div>
+                <p className="mb-1">{step.description}</p>
+                <div className="d-flex gap-2 mt-2">
+                  <button
                     type="button"
-                    onClick={() => moveStep(idx, -1)}
-                    className="small-button"
+                    className="btn btn-danger btn-sm"
+                    onClick={() => handleRemoveStep(idx)}
+                  >
+                    Usuń
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-success btn-sm"
+                    onClick={() => {
+                      if (idx > 0) {
+                        const newSteps = [...steps];
+                        [newSteps[idx], newSteps[idx - 1]] = [
+                          newSteps[idx - 1],
+                          newSteps[idx],
+                        ];
+                        setSteps(
+                          newSteps.map((s, i) => ({ ...s, order: i + 1 }))
+                        );
+                      }
+                    }}
                     disabled={idx === 0}
-                >
-                    ↑
-                </button>
-                <button
+                  >
+                    Przesuń w górę
+                  </button>
+                  <button
                     type="button"
-                    onClick={() => moveStep(idx, 1)}
-                    className="small-button"
+                    className="btn btn-success btn-sm"
+                    onClick={() => {
+                      if (idx < steps.length - 1) {
+                        const newSteps = [...steps];
+                        [newSteps[idx], newSteps[idx + 1]] = [
+                          newSteps[idx + 1],
+                          newSteps[idx],
+                        ];
+                        setSteps(
+                          newSteps.map((s, i) => ({ ...s, order: i + 1 }))
+                        );
+                      }
+                    }}
                     disabled={idx === steps.length - 1}
-                >
-                    ↓
-                </button>
-              </div>
-            </li>
-          ))}
-        </ol>
-
-        {/* Zdjęcie */}
-        <h2>Zdjęcie</h2>
-        <input
-          type="file"
-          name="image"
-          accept="image/*"
-          onChange={handleChange}
-          style={{ marginBottom: 10 }}
-        />
-        {preview && (
-          <div style={{ marginBottom: 20 }}>
-            <img
-              src={preview}
-              alt="Podgląd"
-              style={{ maxWidth: "100%", height: "auto", borderRadius: 10 }}
-            />
-          </div>
+                  >
+                    Przesuń w dół
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ol>
         )}
+        <div className="mb-4">
+          <label htmlFor="recipeImage" className="d-none">
+            Obrazek przepisu:
+          </label>
+          <input
+            type="file"
+            className="form-control d-none"
+            id="recipeImage"
+            name="image"
+            accept="image/*"
+            onChange={handleChange}
+          />
+          <button
+            type="button"
+            className="btn btn-success btn-lg w-100 py-3"
+            onClick={() => document.getElementById("recipeImage").click()}
+          >
+            <i className="bi bi-image me-2"></i> Zmień / Dodaj obrazek przepisu
+          </button>
 
-        <button type="submit" style={{ padding: "10px 20px", fontSize: 16 }}>
+          {preview && (
+            <div className="mt-4 text-center p-3 border rounded bg-light shadow-sm">
+              <p className="mb-2 text-muted">Podgląd obrazka:</p>
+              <img
+                src={preview}
+                alt="Podgląd"
+                className="img-fluid rounded shadow-sm"
+                style={{
+                  maxWidth: "300px",
+                  height: "auto",
+                  objectFit: "cover",
+                }}
+              />
+            </div>
+          )}
+        </div>
+
+        <button type="submit" className="btn btn-primary">
           Zapisz zmiany
         </button>
       </form>
     </main>
   );
-
-  function moveStep(index, direction) {
-    const updated = [...steps];
-    const temp = updated[index];
-    updated[index] = updated[index + direction];
-    updated[index + direction] = temp;
-    setSteps(updated);
-  }
 }
 
 export default EditRecipe;
