@@ -1,7 +1,3 @@
-/* Jeżeli używamy boostrapa użyj import (jeśli nie działa)
-Jak normalego cssa to pomyśl dziesieć razy zanim to zrobisz
-*/
-
 :root {
   --icon-color: #333333;
   --icon-hover-color: #747474;
@@ -132,4 +128,32 @@ main {
 .small-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Custom CSS for Dream Food X section */
+.dream-food-x-section .small-text {
+  font-size: 0.9rem; /* Adjust font size for better readability */
+  line-height: 1.6; /* Adjust line height for better spacing */
+  color: #555;
+}
+
+.dream-food-x-section ul {
+  list-style: disc inside; /* Add bullet points */
+  padding-left: 1rem;
+  margin-top: 0.5rem;
+  color: #555;
+}
+
+.dream-food-x-section ul li {
+  margin-bottom: 0.25rem;
+}
+
+.text-orange-600 {
+  color: #f97316; /* Tailwind's orange-600 color for consistency if not already defined by Tailwind */
+}
+
+/* Ensure the image takes full width within its column and is responsive */
+.dream-food-x-section img {
+  max-width: 100%;
+  height: auto;
 }

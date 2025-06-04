@@ -1,8 +1,21 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../AuthContext';
-import { saveAs } from 'file-saver';
-import { Modal, Button } from 'react-bootstrap';
+import React, { useState, useEffect, useCallback } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../AuthContext";
+import { saveAs } from "file-saver";
+import { Modal, Button } from "react-bootstrap";
+
+// ===== NOWA ZMIANA: Mapowanie czynności na ścieżki do GIFów =====
+const actionGifs = {
+  siekanie: "/gifs/siekanie.gif", // Przykładowa ścieżka do GIFa dla "siekanie"
+  mieszanie: "/gifs/mieszanie.gif", // Przykładowa ścieżka do GIFa dla "mieszanie"
+  gotowanie: "/gifs/gotowanie.gif", // Przykładowa ścieżka do GIFa dla "gotowanie"
+  pieczenie: "/gifs/pieczenie.gif", // Przykładowa ścieżka do GIFa dla "pieczenie"
+  smażenie: "/gifs/smażenie.gif", // Przykładowa ścieżka do GIFa dla "smażenie" (uwaga na polskie znaki w ścieżkach URL)
+  // Dodaj więcej czynności jeśli masz inne
+  // Możesz dodać też domyślny GIF, jeśli czynność nie ma specyficznego GIFa
+  default: "/gifs/default.gif", // Opcjonalny domyślny GIF
+};
+// ================================================================
 
 function Recipe() {
   const { id } = useParams();
@@ -21,7 +34,7 @@ function Recipe() {
   const handleRating = useCallback(
     async (star) => {
       if (!user) {
-        alert('Zaloguj się, aby ocenić przepis!');
+        alert("Zaloguj się, aby ocenić przepis!");
         return;
       }
 
@@ -33,14 +46,14 @@ function Recipe() {
         if (responseCheck.ok) {
           const dataCheck = await responseCheck.json();
           if (dataCheck.alreadyRated) {
-            alert('Już oceniłeś ten przepis.');
+            alert("Już oceniłeś ten przepis.");
             return;
           }
         }
 
         const response = await fetch(`/api/recipes/${id}/rate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ rating: star, username: user.username }),
         });
 
@@ -53,11 +66,11 @@ function Recipe() {
           }));
           setUserRating(star);
         } else {
-          alert('Błąd przy ocenianiu.');
+          alert("Błąd przy ocenianiu.");
         }
       } catch (err) {
-        console.error('Błąd przy ocenianiu:', err);
-        setError('Wystąpił błąd przy ocenianiu');
+        console.error("Błąd przy ocenianiu:", err);
+        setError("Wystąpił błąd przy ocenianiu");
       }
     },
     [id, user]
@@ -75,9 +88,9 @@ function Recipe() {
     };
 
     const blob = new Blob([JSON.stringify(recipeToExport, null, 2)], {
-      type: 'application/json',
+      type: "application/json",
     });
-    saveAs(blob, `${recipe.title || 'przepis'}.json`);
+    saveAs(blob, `${recipe.title || "przepis"}.json`);
   };
 
   const handleDeleteRecipe = async () => {
@@ -113,9 +126,9 @@ function Recipe() {
           setRecipe(null);
         }
       } catch (error) {
-        console.error('Błąd przy pobieraniu przepisu:', error);
+        console.error("Błąd przy pobieraniu przepisu:", error);
         setRecipe(null);
-        setError('Wystąpił błąd przy pobieraniu przepisu.');
+        setError("Wystąpił błąd przy pobieraniu przepisu.");
       } finally {
         setLoading(false);
       }
@@ -136,7 +149,7 @@ function Recipe() {
             setUserRating(data.rating || null);
           }
         } catch (error) {
-          console.error('Błąd przy sprawdzaniu oceny użytkownika:', error);
+          console.error("Błąd przy sprawdzaniu oceny użytkownika:", error);
         }
       }
     };
@@ -156,7 +169,7 @@ function Recipe() {
             setIsFavorite(data.isFavorite);
           }
         } catch (error) {
-          console.error('Błąd przy sprawdzaniu ulubionych:', error);
+          console.error("Błąd przy sprawdzaniu ulubionych:", error);
         }
       }
     };
@@ -194,26 +207,26 @@ function Recipe() {
 
   const toggleFavorite = async () => {
     if (!user) {
-      alert('Zaloguj się, aby dodawać do ulubionych!');
+      alert("Zaloguj się, aby dodawać do ulubionych!");
       return;
     }
 
-    const method = isFavorite ? 'DELETE' : 'POST';
+    const method = isFavorite ? "DELETE" : "POST";
 
     try {
       const response = await fetch(`/api/recipes/${id}/favorite`, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: user.username }),
       });
 
       if (response.ok) {
         setIsFavorite(!isFavorite);
       } else {
-        alert('Błąd przy aktualizacji ulubionych');
+        alert("Błąd przy aktualizacji ulubionych");
       }
     } catch (err) {
-      console.error('Błąd:', err);
+      console.error("Błąd:", err);
     }
   };
 
@@ -222,6 +235,17 @@ function Recipe() {
 
   const rating =
     recipe.rating && !isNaN(recipe.rating) ? parseFloat(recipe.rating) : 0;
+
+  // Pobieramy aktualny krok dla łatwiejszego dostępu
+  const currentStep = recipe?.steps?.[currentStepIndex];
+
+  // ===== NOWA ZMIANA: Wybieranie GIFa na podstawie czynności =====
+  const currentStepGif = currentStep
+    ? actionGifs[currentStep.action.toLowerCase()] || actionGifs.default
+    : null;
+  // Używamy .toLowerCase() aby dopasować, np. "Siekanie" do "siekanie"
+  // Jeśli nie znajdzie dopasowania, użyje 'default' jeśli istnieje, w przeciwnym razie null.
+  // ==============================================================
 
   return (
     <div className="container my-5">
@@ -235,7 +259,11 @@ function Recipe() {
             src={recipe.image}
             alt={recipe.title}
             className="img-fluid rounded mb-3"
-            style={{ maxWidth: '600px', maxHeight: '400px', objectFit: 'cover' }}
+            style={{
+              maxWidth: "600px",
+              maxHeight: "400px",
+              objectFit: "cover",
+            }}
           />
         )}
 
@@ -263,9 +291,11 @@ function Recipe() {
 
         <button
           onClick={toggleFavorite}
-          className={`btn ${isFavorite ? 'btn-danger' : 'btn-outline-primary'} mb-3`}
+          className={`btn ${
+            isFavorite ? "btn-danger" : "btn-outline-primary"
+          } mb-3`}
         >
-          {isFavorite ? 'Usuń z ulubionych' : 'Dodaj do ulubionych'}
+          {isFavorite ? "Usuń z ulubionych" : "Dodaj do ulubionych"}
         </button>
 
         <div className="mb-4">
@@ -275,10 +305,18 @@ function Recipe() {
               {recipe.ingredients.map((ing, idx) => (
                 <li className="list-group-item" key={idx}>
                   {ing.name}
-                  {(ing.amount !== null && ing.amount !== undefined) && (
-                    <>: {ing.amount}{ing.unit ? ` ${ing.unit}` : ''}</>
+                  {ing.amount !== null && ing.amount !== undefined && (
+                    <>
+                      : {ing.amount}
+                      {ing.unit ? ` ${ing.unit}` : ""}
+                    </>
                   )}
-                  {ing.description && <> — <em>{ing.description}</em></>}
+                  {ing.description && (
+                    <>
+                      {" "}
+                      — <em>{ing.description}</em>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>
@@ -303,7 +341,10 @@ function Recipe() {
                         <li>Prędkość ostrzy: {step.bladeSpeed}</li>
                       )}
                       {step.duration && (
-                        <li>Czas: {Math.floor(step.duration / 60)} min {step.duration % 60} s </li>
+                        <li>
+                          Czas: {Math.floor(step.duration / 60)} min{" "}
+                          {step.duration % 60} s{" "}
+                        </li>
                       )}
                     </ul>
                   )}
@@ -322,10 +363,10 @@ function Recipe() {
               <span
                 key={star}
                 style={{
-                  fontSize: '2rem',
-                  cursor: userRating === null ? 'pointer' : 'default',
-                  color: star <= userRating ? 'gold' : '#ccc',
-                  transition: 'color 0.2s',
+                  fontSize: "2rem",
+                  cursor: userRating === null ? "pointer" : "default",
+                  color: star <= userRating ? "gold" : "#ccc",
+                  transition: "color 0.2s",
                 }}
                 onClick={() => userRating === null && handleRating(star)}
                 role="button"
@@ -346,43 +387,75 @@ function Recipe() {
       </div>
 
       <div className="mt-4">
-        <button className="btn btn-outline-success me-2" onClick={handleExportToJSON}>
+        <button
+          className="btn btn-outline-success"
+          onClick={handleExportToJSON}
+        >
           Eksportuj do JSON
         </button>
       </div>
 
       <div className="mt-3">
-        <button className="btn btn-outline-warning" onClick={() => {
-          setCurrentStepIndex(0);
-          setShowSlideshow(true);
-        }}>
+        <button
+          className="btn btn-outline-warning"
+          onClick={() => {
+            setCurrentStepIndex(0);
+            setShowSlideshow(true);
+            setIsStepTimerRunning(false); // Upewnij się, że timer nie działa od razu po otwarciu
+            setTimer(null); // Reset timera
+          }}
+        >
           Krok po kroku
         </button>
       </div>
 
-      <Modal show={showSlideshow} onHide={() => setShowSlideshow(false)} centered size="lg">
+      {/* Modal Krok po kroku */}
+      <Modal
+        show={showSlideshow}
+        onHide={() => setShowSlideshow(false)}
+        centered
+        size="lg"
+      >
         <Modal.Header closeButton>
-          <Modal.Title>Krok {currentStepIndex + 1} z {recipe?.steps?.length}</Modal.Title>
+          <Modal.Title>
+            Krok {currentStepIndex + 1} z {recipe?.steps?.length}
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {recipe?.steps?.[currentStepIndex] ? (
+          {currentStep ? ( // Używamy 'currentStep' zamiast 'recipe?.steps?.[currentStepIndex]' dla czytelności
             <div>
-              <h5>{recipe.steps[currentStepIndex].action}</h5>
-              <p>{recipe.steps[currentStepIndex].description}</p>
+              {/* NOWA ZMIANA: Wyświetlanie GIFa na podstawie mapowania */}
+              {currentStepGif && (
+                <img
+                  src={currentStepGif}
+                  alt={`Krok ${currentStep.order} - ${currentStep.action}`}
+                  className="img-fluid rounded mb-3"
+                  style={{
+                    maxHeight: "400px",
+                    objectFit: "contain",
+                    width: "100%",
+                  }} // Styl do dopasowania obrazka
+                />
+              )}
+              {/* KONIEC NOWEJ ZMIANY */}
+
+              <h5>{currentStep.action}</h5>
+              <p>{currentStep.description}</p>
 
               <ul>
-                {recipe.steps[currentStepIndex].temperature && (
-                  <li>Temperatura: {recipe.steps[currentStepIndex].temperature}°C</li>
+                {currentStep.temperature && (
+                  <li>Temperatura: {currentStep.temperature}°C</li>
                 )}
-                {recipe.steps[currentStepIndex].bladeSpeed && (
-                  <li>Prędkość ostrzy: {recipe.steps[currentStepIndex].bladeSpeed}</li>
+                {currentStep.bladeSpeed && (
+                  <li>Prędkość ostrzy: {currentStep.bladeSpeed}</li>
                 )}
-                {recipe.steps[currentStepIndex].duration && (
+                {currentStep.duration && (
                   <li>
-                    Czas: {timer !== null ? (
+                    Czas:{" "}
+                    {timer !== null ? (
                       <strong>{formatTime(timer)}</strong>
                     ) : (
-                      formatTime(recipe.steps[currentStepIndex].duration)
+                      formatTime(currentStep.duration)
                     )}
                   </li>
                 )}
@@ -390,12 +463,13 @@ function Recipe() {
               <Button
                 variant="success"
                 onClick={() => {
-                  setIsStepTimerRunning(false);
-                  setTimer(recipe?.steps?.[currentStepIndex]?.duration || 0);
-                  setTimeout(() => setIsStepTimerRunning(true), 50);
+                  setIsStepTimerRunning(false); // Zatrzymujemy poprzedni timer
+                  setTimer(currentStep.duration || 0); // Ustawiamy czas na początek kroku
+                  setTimeout(() => setIsStepTimerRunning(true), 50); // Małe opóźnienie, aby timer mógł się zresetować
                 }}
+                disabled={isStepTimerRunning && timer > 0} // Wyłącz przycisk, jeśli timer działa
               >
-                Start
+                {isStepTimerRunning && timer > 0 ? "W trakcie..." : "Start"}
               </Button>
             </div>
           ) : (
@@ -407,8 +481,8 @@ function Recipe() {
             variant="secondary"
             onClick={() => {
               setCurrentStepIndex((prev) => Math.max(0, prev - 1));
-              setIsStepTimerRunning(false);
-              setTimer(null);
+              setIsStepTimerRunning(false); // Reset timera przy zmianie kroku
+              setTimer(null); // Reset timera przy zmianie kroku
             }}
             disabled={currentStepIndex === 0}
           >
@@ -418,20 +492,24 @@ function Recipe() {
           <Button
             variant="primary"
             onClick={() => {
-              setCurrentStepIndex((prev) => Math.min(recipe.steps.length - 1, prev + 1));
-              setIsStepTimerRunning(false);
-              setTimer(null);
+              setCurrentStepIndex((prev) =>
+                Math.min(recipe.steps.length - 1, prev + 1)
+              );
+              setIsStepTimerRunning(false); // Reset timera przy zmianie kroku
+              setTimer(null); // Reset timera przy zmianie kroku
             }}
             disabled={currentStepIndex >= recipe.steps.length - 1}
           >
             Następny
           </Button>
-
-          <Button variant="danger" onClick={() => {
-            setShowSlideshow(false);
-            setIsStepTimerRunning(false);
-            setTimer(null);
-          }}>
+          <Button
+            variant="danger"
+            onClick={() => {
+              setShowSlideshow(false);
+              setIsStepTimerRunning(false); // Upewnij się, że timer zatrzymuje się po zamknięciu modalu
+              setTimer(null); // Zresetuj timer
+            }}
+          >
             Zakończ
           </Button>
         </Modal.Footer>
