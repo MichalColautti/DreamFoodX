@@ -501,6 +501,7 @@ app.post('/api/recipes', upload.single('image'), async (req, res) => {
     const recipeId = recipeResult.insertId;
 
     for (const ingredient of ingredients) {
+      console.log(ingredient.unit)
       await db.promise().execute(
         'INSERT INTO ingredients (recipe_id, name, amount, unit) VALUES (?, ?, ?, ?)',
         [recipeId, ingredient.name, ingredient.amount || null, ingredient.unit || null]

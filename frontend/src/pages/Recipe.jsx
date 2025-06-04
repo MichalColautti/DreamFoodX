@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { saveAs } from 'file-saver';
+import { Modal, Button } from 'react-bootstrap';
 
 function Recipe() {
   const { id } = useParams();
@@ -11,6 +12,10 @@ function Recipe() {
   const [userRating, setUserRating] = useState(null);
   const [error, setError] = useState(null);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [showSlideshow, setShowSlideshow] = useState(false);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [timer, setTimer] = useState(null);
+  const [isStepTimerRunning, setIsStepTimerRunning] = useState(false);
 
   const handleRating = useCallback(
     async (star) => {
@@ -136,6 +141,34 @@ function Recipe() {
     fetchFavoriteStatus();
   }, [id, user]);
 
+  function formatTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins} min ${secs} s`;
+  }
+
+  useEffect(() => {
+    if (!showSlideshow || !isStepTimerRunning) return;
+
+    const currentStep = recipe?.steps?.[currentStepIndex];
+    if (!currentStep || !currentStep.duration) return;
+
+    let remaining = currentStep.duration;
+    setTimer(remaining);
+
+    const interval = setInterval(() => {
+      remaining -= 1;
+      setTimer(remaining);
+
+      if (remaining <= 0) {
+        clearInterval(interval);
+        setIsStepTimerRunning(false);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [currentStepIndex, showSlideshow, recipe, isStepTimerRunning]);
+
   const toggleFavorite = async () => {
     if (!user) {
       alert('Zaloguj się, aby dodawać do ulubionych!');
@@ -166,7 +199,7 @@ function Recipe() {
 
   const rating =
     recipe.rating && !isNaN(recipe.rating) ? parseFloat(recipe.rating) : 0;
-
+  
   return (
     <div className="container my-5">
       {error && <div className="alert alert-danger">{error}</div>}
@@ -239,7 +272,7 @@ function Recipe() {
                         <li>Prędkość ostrzy: {step.bladeSpeed}</li>
                       )}
                       {step.duration && (
-                        <li>Czas: {step.duration} sekund</li>
+                        <li>Czas: {Math.floor(step.duration / 60)} min {step.duration % 60} s </li>
                       )}
                     </ul>
                   )}
@@ -286,6 +319,92 @@ function Recipe() {
           Eksportuj do JSON
         </button>
       </div>
+      <div className="mt-3">
+        <button className="btn btn-outline-warning" onClick={() => {
+          setCurrentStepIndex(0);
+          setShowSlideshow(true);
+        }}>
+          Krok po kroku
+        </button>
+      </div>
+
+      
+  <Modal show={showSlideshow} onHide={() => setShowSlideshow(false)} centered size="lg">
+    <Modal.Header closeButton>
+      <Modal.Title>Krok {currentStepIndex + 1} z {recipe?.steps?.length}</Modal.Title>
+    </Modal.Header>
+    <Modal.Body>
+      {recipe?.steps?.[currentStepIndex] ? (
+        <div>
+          <h5>{recipe.steps[currentStepIndex].action}</h5>
+          <p>{recipe.steps[currentStepIndex].description}</p>
+
+          <ul>
+            {recipe.steps[currentStepIndex].temperature && (
+              <li>Temperatura: {recipe.steps[currentStepIndex].temperature}°C</li>
+            )}
+            {recipe.steps[currentStepIndex].bladeSpeed && (
+              <li>Prędkość ostrzy: {recipe.steps[currentStepIndex].bladeSpeed}</li>
+            )}
+            {recipe.steps[currentStepIndex].duration && (
+              <li>
+                Czas: {timer !== null ? (
+                  <strong>{formatTime(timer)}</strong>
+                ) : (
+                  formatTime(recipe.steps[currentStepIndex].duration)
+                )}
+              </li>
+            
+            )}
+          </ul>
+          <Button
+            variant="success"
+            onClick={() => {
+              setIsStepTimerRunning(false);
+              setTimer(recipe?.steps?.[currentStepIndex]?.duration || 0);
+              setTimeout(() => setIsStepTimerRunning(true), 50);
+            }}
+          >
+            Start
+          </Button>
+        </div>
+      ) : (
+        <p>Brak danych kroku.</p>
+      )}
+    </Modal.Body>
+      <Modal.Footer>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setCurrentStepIndex((prev) => Math.max(0, prev - 1));
+            setIsStepTimerRunning(false);
+            setTimer(null);
+          }}
+          disabled={currentStepIndex === 0}
+        >
+          Poprzedni
+        </Button>
+
+        <Button
+          variant="primary"
+          onClick={() => {
+            setCurrentStepIndex((prev) => Math.min(recipe.steps.length - 1, prev + 1));
+            setIsStepTimerRunning(false);
+            setTimer(null);
+          }}
+          disabled={currentStepIndex >= recipe.steps.length - 1}
+        >
+          Następny
+        </Button>
+        <Button variant="danger" onClick={() => {
+          setShowSlideshow(false);
+          setIsStepTimerRunning(false);
+          setTimer(null);
+        }}>
+          Zakończ
+        </Button>
+      </Modal.Footer>
+    </Modal>
     </div>
   );
 }

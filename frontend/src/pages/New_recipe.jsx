@@ -16,6 +16,7 @@ function AddRecipe() {
   const [selectedIngredient, setSelectedIngredient] = useState("");
   const [customIngredient, setCustomIngredient] = useState("");
   const [quantity, setQuantity] = useState("");
+  const [unit, setUnit] = useState("g");
   const [ingredientList, setIngredientList] = useState([]);
 
   const [steps, setSteps] = useState([]);
@@ -25,7 +26,7 @@ function AddRecipe() {
   const [bladeSpeed, setBladeSpeed] = useState("");
   const [duration, setDuration] = useState("");
 
-  const allowedUnits = ["g", "ml", "l"];
+  const allowedUnits = ["g", "ml", "l","szt"];
 
   useEffect(() => {
     if (!user) {
@@ -60,20 +61,16 @@ function AddRecipe() {
 
   const handleAddIngredient = () => {
     const name = customIngredient.trim() || selectedIngredient;
-    const qty = quantity.trim().toLowerCase();
+    const qty = quantity.trim();
 
     if (!name) {
       setMessage("Proszę wybrać lub wpisać składnik.");
       return;
     }
 
-    const qtyPattern = /^(\d+(\.\d+)?)(g|ml|l)?$/;
-    if (!qtyPattern.test(qty)) {
-      setMessage(
-        `Gramatura musi mieć format liczba z opcjonalną jednostką (${allowedUnits.join(
-          ", "
-        )}), np. 200, 200g, 0.5l, 150ml`
-      );
+    const num = parseFloat(qty);
+    if (isNaN(num) || num <= 0) {
+      setMessage("Wprowadź poprawną ilość.");
       return;
     }
 
@@ -82,10 +79,11 @@ function AddRecipe() {
       return;
     }
 
-    setIngredientList([...ingredientList, { name, quantity: qty }]);
+    setIngredientList([...ingredientList, { name, amount: num, unit }]);
     setSelectedIngredient("");
     setCustomIngredient("");
     setQuantity("");
+    setUnit("g");
     setMessage("");
   };
 
@@ -93,8 +91,8 @@ function AddRecipe() {
     if (currentStepAction && currentStepDescription.trim()) {
       if (bladeSpeed) {
         const speed = parseInt(bladeSpeed);
-        if (speed < 1 || speed > 10) {
-          setMessage("Prędkość noża musi być od 1 do 10.");
+        if (speed < 0 || speed > 10) {
+          setMessage("Prędkość noża musi być od 0 do 10.");
           return;
         }
       }
@@ -106,7 +104,7 @@ function AddRecipe() {
           description: currentStepDescription.trim(),
           temperature: temperature ? parseInt(temperature) : null,
           bladeSpeed: bladeSpeed ? parseInt(bladeSpeed) : null,
-          duration: duration ? parseInt(duration) : null,
+          duration: duration ? parseInt(duration) * 60 : null,
         },
       ]);
       setCurrentStepAction("");
@@ -186,10 +184,10 @@ function AddRecipe() {
   };
 
   const handleImportFromJson = (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+    const file = e.target.files[0];
+    if (!file) return;
 
-  const reader = new FileReader();
+    const reader = new FileReader();
     reader.onload = (event) => {
       try {
         const data = JSON.parse(event.target.result);
@@ -212,12 +210,11 @@ function AddRecipe() {
     reader.readAsText(file);
   };
 
-return (
+  return (
     <main style={styles.main}>
       <h1 style={styles.title}>Dodaj przepis</h1>
       {message && <p style={styles.message}>{message}</p>}
       <form onSubmit={handleSubmit} encType="multipart/form-data" style={styles.form}>
-        {/* Tytuł */}
         <input
           name="title"
           placeholder="Tytuł przepisu"
@@ -226,8 +223,6 @@ return (
           required
           style={styles.input}
         />
-
-        {/* Opis przepisu */}
         <textarea
           name="description"
           placeholder="Opis przepisu"
@@ -237,7 +232,6 @@ return (
           style={styles.textarea}
         />
 
-        {/* Składniki */}
         <h2 style={styles.sectionTitle}>Składniki</h2>
         <div style={styles.row}>
           <select
@@ -282,11 +276,22 @@ return (
           />
           <input
             type="text"
-            placeholder="Gramatura (np. 200, 200g, 150ml, 0.5l, 2)"
+            placeholder="Ilość"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
-            style={styles.input}
+            style={styles.inputSmall}
           />
+          <select
+            value={unit}
+            onChange={(e) => setUnit(e.target.value)}
+            style={styles.select}
+          >
+            {allowedUnits.map((u) => (
+              <option key={u} value={u}>
+                {u}
+              </option>
+            ))}
+          </select>
           <button type="button" onClick={handleAddIngredient} style={styles.button}>
             Dodaj składnik
           </button>
@@ -295,12 +300,11 @@ return (
         <ul style={styles.list}>
           {ingredientList.map((ing, idx) => (
             <li key={idx} style={styles.listItem}>
-              {ing.name} - {ing.quantity}
+              {ing.name} - {ing.amount}{ing.unit}
             </li>
           ))}
         </ul>
 
-        {/* Kroki */}
         <h2 style={styles.sectionTitle}>Kroki przygotowania</h2>
         <div style={styles.row}>
           <select
@@ -336,16 +340,16 @@ return (
           />
           <input
             type="number"
-            placeholder="Prędkość noża (1–10)"
+            placeholder="Prędkość noża (0–10)"
             value={bladeSpeed}
             onChange={(e) => setBladeSpeed(e.target.value)}
-            min={1}
+            min={0}
             max={10}
             style={styles.inputSmall}
           />
           <input
             type="number"
-            placeholder="Czas (sekundy)"
+            placeholder="Czas (min)"
             value={duration}
             onChange={(e) => setDuration(e.target.value)}
             min={1}
@@ -362,7 +366,7 @@ return (
               <strong>{step.action}</strong>: {step.description}
               {step.temperature !== null && ` | Temp: ${step.temperature}°C`}
               {step.bladeSpeed !== null && ` | Prędkość: ${step.bladeSpeed}`}
-              {step.duration !== null && ` | Czas: ${step.duration}s`}
+              {step.duration !== null && ` | Czas: ${Math.round(step.duration / 60)} min`}
               <div style={{ marginTop: 4 }}>
                 <button
                   type="button"
@@ -385,7 +389,6 @@ return (
           ))}
         </ol>
 
-        {/* Zdjęcie */}
         <h2 style={styles.sectionTitle}>Zdjęcie</h2>
         <input
           id="image-upload"
@@ -409,7 +412,7 @@ return (
         <button type="submit" style={{ ...styles.button, marginTop: 20 }}>
           Dodaj
         </button>
-          <input
+        <input
           type="file"
           accept="application/json"
           onChange={handleImportFromJson}

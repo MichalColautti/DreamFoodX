@@ -27,7 +27,7 @@ function EditRecipe() {
   const [bladeSpeed, setBladeSpeed] = useState("");
   const [duration, setDuration] = useState("");
 
-  const allowedUnits = ["g", "ml", "l"];
+  const allowedUnits = ["g", "ml", "l","szt"];
 
   useEffect(() => {
     if (!user) {
@@ -70,7 +70,8 @@ function EditRecipe() {
       setIngredientList(
         (data.ingredients || []).map((ing) => ({
           name: ing.name,
-          quantity: ing.amount + (ing.unit || ""),
+          amount: ing.amount,
+          unit: ing.unit || "",
         }))
       );
 
@@ -100,16 +101,22 @@ function EditRecipe() {
 
     if (!name) return setMessage("Proszę wybrać lub wpisać składnik.");
 
-    const qtyPattern = /^(\d+(\.\d+)?)(g|ml|l)?$/;
-    if (!qtyPattern.test(qty)) {
-      return setMessage(`Gramatura musi mieć format liczba + opcjonalna jednostka (${allowedUnits.join(", ")})`);
+    const qtyPattern = /^(\d+(?:\.\d+)?)(g|ml|l)?$/;
+    const match = qty.match(qtyPattern);
+    if (!match) {
+      return setMessage(
+        `Gramatura musi mieć format liczba + opcjonalna jednostka (${allowedUnits.join(", ")})`
+      );
     }
+
+    const amount = parseFloat(match[1]);
+    const unit = match[2] || "";
 
     if (ingredientList.some((ing) => ing.name === name)) {
       return setMessage("Ten składnik już został dodany.");
     }
 
-    setIngredientList([...ingredientList, { name, quantity: qty }]);
+    setIngredientList([...ingredientList, { name, amount, unit }]);
     setSelectedIngredient("");
     setCustomIngredient("");
     setQuantity("");
@@ -123,8 +130,8 @@ function EditRecipe() {
 
     if (bladeSpeed) {
       const speed = parseInt(bladeSpeed);
-      if (speed < 1 || speed > 10) {
-        return setMessage("Prędkość noża musi być od 1 do 10.");
+      if (speed < 0 || speed > 10) {
+        return setMessage("Prędkość noża musi być od 0 do 10.");
       }
     }
 
@@ -135,7 +142,7 @@ function EditRecipe() {
         description: currentStepDescription.trim(),
         temperature: temperature ? parseInt(temperature) : null,
         bladeSpeed: bladeSpeed ? parseInt(bladeSpeed) : null,
-        duration: duration ? parseInt(duration) : null,
+        duration: duration ? parseInt(duration) * 60 : null,
       },
     ]);
 
@@ -159,14 +166,11 @@ function EditRecipe() {
     formData.append("title", form.title);
     formData.append("description", form.description);
 
-    const parsedIngredients = ingredientList.map((ing) => {
-      const match = ing.quantity.match(/^(\d+(?:\.\d+)?)([a-zA-Z]*)$/);
-      return {
-        name: ing.name,
-        amount: match ? parseFloat(match[1]) : 0,
-        unit: match && match[2] ? match[2] : null,
-      };
-    });
+    const parsedIngredients = ingredientList.map((ing) => ({
+      name: ing.name,
+      amount: ing.amount,
+      unit: ing.unit || null,
+    }));
 
     formData.append("ingredients", JSON.stringify(parsedIngredients));
     formData.append("steps", JSON.stringify(steps));
@@ -295,15 +299,30 @@ function EditRecipe() {
               style={{ flex: 2 }}
             />
             <input
-              type="text"
-              value={ing.quantity}
+              type="number"
+              placeholder="Ilość"
+              value={ing.amount}
               onChange={(e) => {
                 const newList = [...ingredientList];
-                newList[idx].quantity = e.target.value;
+                newList[idx].amount = parseFloat(e.target.value);
                 setIngredientList(newList);
               }}
               style={{ flex: 1 }}
             />
+            <select
+              value={ing.unit}
+              onChange={(e) => {
+                const newList = [...ingredientList];
+                newList[idx].unit = e.target.value;
+                setIngredientList(newList);
+              }}
+              style={{ flex: 1 }}
+            >
+              <option value="">brak</option>
+              {allowedUnits.map((u) => (
+                <option key={u} value={u}>{u}</option>
+              ))}
+            </select>
             <button
               type="button"
               onClick={() =>
@@ -353,14 +372,14 @@ function EditRecipe() {
           />
           <input
             type="number"
-            placeholder="Prędkość noża (1–10)"
+            placeholder="Prędkość noża (0–10)"
             value={bladeSpeed}
             onChange={(e) => setBladeSpeed(e.target.value)}
             style={{ flex: 1 }}
           />
           <input
             type="number"
-            placeholder="Czas (s)"
+            placeholder="Czas (min)"
             value={duration}
             onChange={(e) => setDuration(e.target.value)}
             style={{ flex: 1 }}
@@ -376,7 +395,7 @@ function EditRecipe() {
               <strong>{step.action}</strong>: {step.description}
               {step.temperature !== null && ` | Temp: ${step.temperature}°C`}
               {step.bladeSpeed !== null && ` | Prędkość: ${step.bladeSpeed}`}
-              {step.duration !== null && ` | Czas: ${step.duration}s`}
+              {step.duration !== null && ` | Czas: ${Math.round(step.duration / 60)} min`}
               <br />
               <div style={{ display: "flex", gap: 5, marginTop: 5 }}>
                 <button
