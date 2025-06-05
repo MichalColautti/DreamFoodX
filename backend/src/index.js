@@ -121,11 +121,11 @@ const upload = multer({ storage });
 app.get("/api/recipes/best", async (req, res) => {
   try {
     const query = `
-      SELECT * FROM recipes
-      WHERE rating IS NOT NULL
-      ORDER BY rating DESC
-      LIMIT 5; 
-      `;
+    SELECT * FROM recipes
+    WHERE rating IS NOT NULL
+    ORDER BY rating DESC
+    LIMIT 5; 
+    `;
     const [rows] = await db.promise().execute(query);
     res.status(200).json(rows);
   } catch (err) {
@@ -138,10 +138,10 @@ app.get("/api/recipes/best", async (req, res) => {
 app.get("/api/recipes/latest", async (req, res) => {
   try {
     const query = `
-      SELECT * FROM recipes
-      ORDER BY created_at DESC
-      LIMIT 5; 
-    `;
+    SELECT * FROM recipes
+    ORDER BY created_at DESC
+    LIMIT 5; 
+    `;
     const [rows] = await db.promise().execute(query);
     res.status(200).json(rows);
   } catch (err) {
@@ -183,10 +183,10 @@ app.get("/api/recipes/search", async (req, res) => {
 
   try {
     const query = `
-      SELECT * FROM recipes
-      WHERE title LIKE ?
-      ORDER BY created_at DESC;
-    `;
+    SELECT * FROM recipes
+    WHERE title LIKE ?
+    ORDER BY created_at DESC;
+    `;
     const [rows] = await db.promise().execute(query, [`%${name}%`]);
     if (rows.length === 0) {
       return res.status(404).json({ message: "Nie znaleziono przepisów." });
@@ -481,11 +481,11 @@ app.get("/api/favorites/get-favorites", async (req, res) => {
   try {
     const [favorites] = await db.promise().execute(
       `
-      SELECT r.id, r.title, r.description, r.image
-      FROM favorites f
-      JOIN recipes r ON f.recipe_id = r.id
-      JOIN users u ON f.user_id = u.id
-      WHERE u.username = ?`,
+      SELECT r.id, r.title, r.description, r.image
+      FROM favorites f
+      JOIN recipes r ON f.recipe_id = r.id
+      JOIN users u ON f.user_id = u.id
+      WHERE u.username = ?`,
       [username]
     );
 
@@ -540,8 +540,8 @@ app.post("/api/recipes", upload.single("image"), async (req, res) => {
       const step = steps[i];
       await db.promise().execute(
         `INSERT INTO steps
-          (recipe_id, step_order, action, description, temperature, blade_speed, duration)
-          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        (recipe_id, step_order, action, description, temperature, blade_speed, duration)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           recipeId,
           i + 1,
@@ -623,10 +623,10 @@ app.put("/api/recipes/:id", upload.single("image"), async (req, res) => {
 
   try {
     const updateQuery = `
-      UPDATE recipes
-      SET title = ?, description = ?${req.file ? ", image = ?" : ""}
-      WHERE id = ?
-    `;
+    UPDATE recipes
+    SET title = ?, description = ?${req.file ? ", image = ?" : ""}
+    WHERE id = ?
+    `;
     const updateParams = req.file
       ? [title, description, `/uploads/${req.file.filename}`, recipeId]
       : [title, description, recipeId];
@@ -655,8 +655,8 @@ app.put("/api/recipes/:id", upload.single("image"), async (req, res) => {
       const step = parsedSteps[i];
       await db.promise().execute(
         `INSERT INTO steps
-           (recipe_id, step_order, action, description, temperature, blade_speed, duration)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        (recipe_id, step_order, action, description, temperature, blade_speed, duration)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           recipeId,
           i + 1, // Zapewnia prawidłową kolejność kroków
