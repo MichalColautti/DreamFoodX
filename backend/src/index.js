@@ -217,31 +217,36 @@ app.get("/api/recipes/:id", async (req, res) => {
     }
     const recipe = recipeResults[0];
 
-    const [ingredientResults] = await db
-      .promise()
-      .execute(
-        "SELECT name, amount, unit FROM ingredients WHERE recipe_id = ?",
-        [recipeId]
-      );
-    recipe.ingredients = ingredientResults.map((row) => ({
-      name: row.name,
-      amount: row.amount,
-      unit: row.unit,
-    }));
-
     const [stepResults] = await db
       .promise()
       .execute(
-        "SELECT step_order, action, description, temperature, blade_speed, duration FROM steps WHERE recipe_id = ? ORDER BY step_order",
+        "SELECT id, step_order, action, description, temperature, blade_speed, duration FROM steps WHERE recipe_id = ? ORDER BY step_order",
         [recipeId]
       );
-    recipe.steps = stepResults.map((row) => ({
+
+    for (let step of stepResults) {
+      const [ingredientResults] = await db
+        .promise()
+        .execute(
+          "SELECT name, amount, unit FROM step_ingredients WHERE step_id = ?",
+          [step.id]
+        );
+      step.ingredients = ingredientResults.map(row => ({
+        name: row.name,
+        amount: row.amount,
+        unit: row.unit
+      }));
+    }
+
+    recipe.steps = stepResults.map(row => ({
+      id: row.id,
       order: row.step_order,
       action: row.action,
       description: row.description,
       temperature: row.temperature,
       bladeSpeed: row.blade_speed,
       duration: row.duration,
+      ingredients: row.ingredients
     }));
 
     res.json(recipe);
@@ -505,7 +510,6 @@ app.post("/api/recipes", upload.single("image"), async (req, res) => {
   const { title, author, description } = req.body;
 
   try {
-    const ingredients = JSON.parse(req.body.ingredients || "[]");
     const steps = JSON.parse(req.body.steps || "[]");
     const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
 
@@ -521,24 +525,9 @@ app.post("/api/recipes", upload.single("image"), async (req, res) => {
       );
     const recipeId = recipeResult.insertId;
 
-    for (const ingredient of ingredients) {
-      console.log(ingredient.unit);
-      await db
-        .promise()
-        .execute(
-          "INSERT INTO ingredients (recipe_id, name, amount, unit) VALUES (?, ?, ?, ?)",
-          [
-            recipeId,
-            ingredient.name,
-            ingredient.amount || null,
-            ingredient.unit || null,
-          ]
-        );
-    }
-
     for (let i = 0; i < steps.length; i++) {
       const step = steps[i];
-      await db.promise().execute(
+      const [stepResult] = await db.promise().execute(
         `INSERT INTO steps
         (recipe_id, step_order, action, description, temperature, blade_speed, duration)
         VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -552,6 +541,23 @@ app.post("/api/recipes", upload.single("image"), async (req, res) => {
           step.duration || null,
         ]
       );
+
+      const stepId = stepResult.insertId;
+
+      if (step.ingredients) {
+        for (const ingredient of step.ingredients) {
+          await db.promise().execute(
+            `INSERT INTO step_ingredients (step_id, name, amount, unit)
+             VALUES (?, ?, ?, ?)`,
+            [
+              stepId,
+              ingredient.name,
+              ingredient.amount || null,
+              ingredient.unit || null,
+            ]
+          );
+        }
+      }
     }
 
     res.status(201).json({ message: "Przepis dodany!", recipeId });
@@ -566,13 +572,9 @@ app.delete('/api/recipes/:id', async (req, res) => {
   const recipeId = req.params.id;
 
   try {    
-    // Usuwanie ocen
     await db.promise().execute('DELETE FROM ratings WHERE recipe_id = ?', [recipeId]);
-
-    // Usunięcie z ulubionych
     await db.promise().execute('DELETE FROM favorites WHERE recipe_id = ?', [recipeId]);
 
-    // Usunięcie przepisu
     const [result] = await db.promise().execute('DELETE FROM recipes WHERE id = ?', [recipeId]);
 
     if (result.affectedRows === 0) {
@@ -619,7 +621,7 @@ app.get("/api/ingredients/categories", async (req, res) => {
 // Edytowanie przepisu
 app.put("/api/recipes/:id", upload.single("image"), async (req, res) => {
   const recipeId = req.params.id;
-  const { title, description, ingredients, steps } = req.body;
+  const { title, description, steps } = req.body;
 
   try {
     const updateQuery = `
@@ -631,35 +633,25 @@ app.put("/api/recipes/:id", upload.single("image"), async (req, res) => {
       ? [title, description, `/uploads/${req.file.filename}`, recipeId]
       : [title, description, recipeId];
 
-    await db.promise().execute(updateQuery, updateParams); // Usunięcie wszystkich składników i kroków przed ponownym wstawieniem
+    await db.promise().execute(updateQuery, updateParams);
 
-    await db
-      .promise()
-      .execute("DELETE FROM ingredients WHERE recipe_id = ?", [recipeId]);
-    await db
-      .promise()
-      .execute("DELETE FROM steps WHERE recipe_id = ?", [recipeId]);
-
-    const parsedIngredients = JSON.parse(ingredients);
-    for (const ing of parsedIngredients) {
-      await db
-        .promise()
-        .execute(
-          "INSERT INTO ingredients (recipe_id, name, amount, unit) VALUES (?, ?, ?, ?)",
-          [recipeId, ing.name, ing.amount, ing.unit]
-        );
+    const [oldSteps] = await db.promise().execute("SELECT id FROM steps WHERE recipe_id = ?", [recipeId]);
+    for (const step of oldSteps) {
+      await db.promise().execute("DELETE FROM step_ingredients WHERE step_id = ?", [step.id]);
     }
+
+    await db.promise().execute("DELETE FROM steps WHERE recipe_id = ?", [recipeId]);
 
     const parsedSteps = JSON.parse(steps);
     for (let i = 0; i < parsedSteps.length; i++) {
       const step = parsedSteps[i];
-      await db.promise().execute(
+      const [stepResult] = await db.promise().execute(
         `INSERT INTO steps
         (recipe_id, step_order, action, description, temperature, blade_speed, duration)
         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           recipeId,
-          i + 1, // Zapewnia prawidłową kolejność kroków
+          i + 1,
           step.action,
           step.description,
           step.temperature,
@@ -667,6 +659,17 @@ app.put("/api/recipes/:id", upload.single("image"), async (req, res) => {
           step.duration,
         ]
       );
+
+      const stepId = stepResult.insertId;
+
+      if (step.ingredients) {
+        for (const ing of step.ingredients) {
+          await db.promise().execute(
+            `INSERT INTO step_ingredients (step_id, name, amount, unit) VALUES (?, ?, ?, ?)`,
+            [stepId, ing.name, ing.amount, ing.unit]
+          );
+        }
+      }
     }
 
     res.json({ message: "Przepis zaktualizowany!" });
@@ -681,7 +684,6 @@ app.delete("/api/recipes/:recipeId/steps/:stepOrder", async (req, res) => {
   const { recipeId, stepOrder } = req.params;
 
   try {
-    // Usunięcie określonego kroku
     const [result] = await db
       .promise()
       .execute("DELETE FROM steps WHERE recipe_id = ? AND step_order = ?", [
@@ -693,7 +695,6 @@ app.delete("/api/recipes/:recipeId/steps/:stepOrder", async (req, res) => {
       return res.status(404).json({ message: "Krok nie znaleziony." });
     }
 
-    // Aktualizacja kolejności pozostałych kroków dla danego przepisu
     await db
       .promise()
       .execute(

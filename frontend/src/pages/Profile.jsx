@@ -1,98 +1,125 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../AuthContext";
 import { Link } from "react-router-dom";
+import "bootstrap/dist/css/bootstrap.min.css"; 
+
+const EmptyFavoritesOrError = ({ user, errorMessage }) => {
+  let title = "Twój profil";
+  let message = "";
+  let buttonText = "Odkryj przepisy";
+  let buttonLink = "/";
+  let iconClass = "bi-person-circle"; 
+
+  if (errorMessage) {
+    title = errorMessage.startsWith("Aby zobaczyć")
+      ? "Zaloguj się"
+      : "Wystąpił problem";
+    message = errorMessage.startsWith("Aby zobaczyć")
+      ? "Proszę, zaloguj się, aby mieć dostęp do profilu."
+      : "Przepraszamy, nie udało się załadować danych profilu. Spróbuj ponownie później.";
+    buttonText = errorMessage.startsWith("Aby zobaczyć")
+      ? "Przejdź do logowania"
+      : "Wróć do strony głównej";
+    buttonLink = errorMessage.startsWith("Aby zobaczyć") ? "/login" : "/";
+    iconClass = errorMessage.startsWith("Aby zobaczyć")
+      ? "bi-person-fill"
+      : "bi-exclamation-circle-fill";
+  } else {
+    message = user?.username
+      ? `${user.username}, wygląda na to, że nie masz jeszcze żadnych ulubionych przepisów.`
+      : "Brak danych profilu.";
+  }
+
+  return (
+    <div className="container text-center mt-5">
+      <div
+        className="card p-4 shadow-sm"
+        style={{ borderColor: "#f97316", borderWidth: "2px" }}
+      >
+        <div className="card-body">
+          <h4 className="card-title text-dark mb-3">
+            <i className={`bi ${iconClass} me-2`} style={{ color: "#f97316" }}></i> {title}
+          </h4>
+          <p className="card-text text-secondary mb-4">{message}</p>
+          <Link to={buttonLink} className="btn" style={{ backgroundColor: "#f97316", color: "white" }}>
+            {buttonText}
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 function Profile() {
   const { user } = useAuth();
-
   const [favorites, setFavorites] = useState([]);
-  const [loadingFavorites, setLoadingFavorites] = useState(true);
-  const [errorFavorites, setErrorFavorites] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState(null);
 
   useEffect(() => {
     if (!user) {
-      setLoadingFavorites(false);
-      setErrorFavorites("Zaloguj się, aby zobaczyć ulubione przepisy.");
+      setLoading(false);
+      setErrorMessage("Aby zobaczyć profil, musisz być zalogowany.");
       return;
     }
 
-    // Fetch ulubione przepisy
     const fetchFavorites = async () => {
       try {
-        const res = await fetch(`/api/favorites/get-favorites?username=${user.username}`);
-        if (!res.ok) throw new Error("Nie udało się pobrać ulubionych przepisów");
-        const data = await res.json();
-        setFavorites(data);
-        setErrorFavorites(null);
+        const response = await fetch(`/api/favorites/get-favorites?username=${user.username}`);
+        if (response.ok) {
+          const data = await response.json();
+          setFavorites(data);
+          if (data.length === 0) {
+            setErrorMessage(null); 
+          }
+        } else {
+          setErrorMessage("Wystąpił problem z serwerem podczas pobierania danych profilu.");
+        }
       } catch (error) {
-        setErrorFavorites(error.message);
+        console.error("Błąd przy pobieraniu profilu:", error);
+        setErrorMessage("Błąd połączenia z serwerem. Spróbuj ponownie później.");
       } finally {
-        setLoadingFavorites(false);
+        setLoading(false);
       }
     };
 
     fetchFavorites();
   }, [user]);
 
-  if (!user) {
-    return (
-      <main className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6">
-        <h1 className="text-3xl font-bold mb-6">Profil użytkownika</h1>
-        <p className="text-xl mb-4">Zaloguj się, aby zobaczyć profil.</p>
-        <Link
-          to="/login"
-          className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
-        >
-          Przejdź do logowania
-        </Link>
-      </main>
-    );
+  if (loading) {
+    return <p className="text-center mt-5 text-secondary">Ładowanie profilu...</p>;
+  }
+
+  if (errorMessage || favorites.length === 0) {
+    return <EmptyFavoritesOrError user={user} errorMessage={errorMessage} />;
   }
 
   return (
-    <main className="min-h-screen bg-gray-100 p-6">
-      <h1 className="text-3xl font-bold mb-6 text-center">Profil użytkownika</h1>
-      <h2 className="text-xl mb-4">Witaj, {user.username}!</h2>
-
-      {/* Ulubione przepisy */}
-      <section>
-        <h3 className="text-2xl font-semibold mb-4 text-center">Ulubione przepisy</h3>
-        {loadingFavorites ? (
-          <p>Ładowanie ulubionych przepisów...</p>
-        ) : errorFavorites ? (
-          <p className="text-red-600">{errorFavorites}</p>
-        ) : favorites.length === 0 ? (
-          <p>Brak ulubionych przepisów.</p>
-        ) : (
-          <div className="container">
-            <div className="row">
-              {favorites.map((recipe) => (
-                <div key={recipe.id} className="col-6 col-md-3 mb-4">
-                  <Link
-                    to={`/recipe/${recipe.id}`}
-                    className="card-link text-decoration-none"
-                  >
-                    <div className="card h-100">
-                      {recipe.image && (
-                        <img
-                          src={recipe.image}
-                          className="card-img-top"
-                          alt={recipe.title}
-                          style={{ objectFit: "cover", height: "200px" }}
-                        />
-                      )}
-                      <div className="card-body">
-                        <h5 className="card-title text-center">{recipe.title}</h5>
-                      </div>
-                    </div>
-                  </Link>
+    <div className="container mt-4 text-center">
+      <h2>Witaj, {user.username}!</h2>
+      <h3 className="mb-4">Twoje ulubione przepisy</h3>
+      <div className="row">
+        {favorites.map((recipe) => (
+          <div key={recipe.id} className="col-md-3 mb-4">
+            <Link to={`/recipe/${recipe.id}`} className="card-link text-decoration-none">
+              <div className="card">
+                {recipe.image && (
+                  <img
+                    src={recipe.image}
+                    className="card-img-top"
+                    alt={recipe.title}
+                    style={{ objectFit: "cover", height: "200px" }}
+                  />
+                )}
+                <div className="card-body">
+                  <h5 className="card-title text-center">{recipe.title}</h5>
                 </div>
-              ))}
-            </div>
+              </div>
+            </Link>
           </div>
-        )}
-      </section>
-    </main>
+        ))}
+      </div>
+    </div>
   );
 }
 

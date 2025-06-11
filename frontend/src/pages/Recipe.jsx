@@ -4,18 +4,14 @@ import { useAuth } from "../AuthContext";
 import { saveAs } from "file-saver";
 import { Modal, Button } from "react-bootstrap";
 
-// ===== NOWA ZMIANA: Mapowanie czynności na ścieżki do GIFów =====
 const actionGifs = {
   siekanie: "/gifs/siekanie.gif", // Przykładowa ścieżka do GIFa dla "siekanie"
   mieszanie: "/gifs/mieszanie.gif", // Przykładowa ścieżka do GIFa dla "mieszanie"
   gotowanie: "/gifs/gotowanie.gif", // Przykładowa ścieżka do GIFa dla "gotowanie"
   pieczenie: "/gifs/pieczenie.gif", // Przykładowa ścieżka do GIFa dla "pieczenie"
   smażenie: "/gifs/smażenie.gif", // Przykładowa ścieżka do GIFa dla "smażenie" (uwaga na polskie znaki w ścieżkach URL)
-  // Dodaj więcej czynności jeśli masz inne
-  // Możesz dodać też domyślny GIF, jeśli czynność nie ma specyficznego GIFa
-  default: "/gifs/default.gif", // Opcjonalny domyślny GIF
+  default: "/gifs/default.gif",
 };
-// ================================================================
 
 function Recipe() {
   const { id } = useParams();
@@ -236,16 +232,37 @@ function Recipe() {
   const rating =
     recipe.rating && !isNaN(recipe.rating) ? parseFloat(recipe.rating) : 0;
 
-  // Pobieramy aktualny krok dla łatwiejszego dostępu
   const currentStep = recipe?.steps?.[currentStepIndex];
 
-  // ===== NOWA ZMIANA: Wybieranie GIFa na podstawie czynności =====
   const currentStepGif = currentStep
     ? actionGifs[currentStep.action.toLowerCase()] || actionGifs.default
     : null;
-  // Używamy .toLowerCase() aby dopasować, np. "Siekanie" do "siekanie"
-  // Jeśli nie znajdzie dopasowania, użyje 'default' jeśli istnieje, w przeciwnym razie null.
-  // ==============================================================
+
+  function sumIngredients(ingredientsList) {
+    const map = new Map();
+
+    ingredientsList.forEach(({ name, amount, unit }) => {
+      if (!name || amount == null) return;
+
+      const numericAmount = parseFloat(amount); 
+
+      if (isNaN(numericAmount)) return;
+
+      const key = `${name.toLowerCase()}|${unit || ""}`;
+      if (map.has(key)) {
+        map.get(key).amount += numericAmount;
+      } else {
+        map.set(key, { name, amount: numericAmount, unit });
+      }
+    });
+
+    return Array.from(map.values());
+  }
+  
+  const totalIngredients = sumIngredients([
+    ...(recipe.ingredients || []),
+    ...recipe.steps.flatMap((step) => step.ingredients || []),
+  ]);
 
   return (
     <div className="container my-5">
@@ -299,24 +316,12 @@ function Recipe() {
         </button>
 
         <div className="mb-4">
-          <h4>Składniki</h4>
-          {recipe.ingredients?.length ? (
+          <h3>Składnik</h3>
+          {totalIngredients.length ? (
             <ul className="list-group list-group-flush">
-              {recipe.ingredients.map((ing, idx) => (
+              {totalIngredients.map((ing, idx) => (
                 <li className="list-group-item" key={idx}>
-                  {ing.name}
-                  {ing.amount !== null && ing.amount !== undefined && (
-                    <>
-                      : {ing.amount}
-                      {ing.unit ? ` ${ing.unit}` : ""}
-                    </>
-                  )}
-                  {ing.description && (
-                    <>
-                      {" "}
-                      — <em>{ing.description}</em>
-                    </>
-                  )}
+                  {ing.name}: {ing.amount} {ing.unit || ""}
                 </li>
               ))}
             </ul>
@@ -334,19 +339,26 @@ function Recipe() {
                   <strong>{step.action}</strong>: {step.description}
                   {(step.temperature || step.bladeSpeed || step.duration) && (
                     <ul>
-                      {step.temperature && (
-                        <li>Temperatura: {step.temperature}°C</li>
-                      )}
-                      {step.bladeSpeed && (
-                        <li>Prędkość ostrzy: {step.bladeSpeed}</li>
-                      )}
+                      {step.temperature && <li>Temperatura: {step.temperature}°C</li>}
+                      {step.bladeSpeed && <li>Prędkość ostrzy: {step.bladeSpeed}</li>}
                       {step.duration && (
                         <li>
-                          Czas: {Math.floor(step.duration / 60)} min{" "}
-                          {step.duration % 60} s{" "}
+                          Czas: {Math.floor(step.duration / 60)} min {step.duration % 60} s{" "}
                         </li>
                       )}
                     </ul>
+                  )}
+                  {step.ingredients && step.ingredients.length > 0 && (
+                    <>
+                      <strong>Składniki użyte w tym kroku:</strong>
+                      <ul>
+                        {step.ingredients.map((ing, idx) => (
+                          <li key={idx}>
+                            {ing.name}: {ing.amount} {ing.unit || ""}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
                   )}
                 </li>
               ))}
@@ -401,8 +413,8 @@ function Recipe() {
           onClick={() => {
             setCurrentStepIndex(0);
             setShowSlideshow(true);
-            setIsStepTimerRunning(false); // Upewnij się, że timer nie działa od razu po otwarciu
-            setTimer(null); // Reset timera
+            setIsStepTimerRunning(false);  
+            setTimer(null); 
           }}
         >
           Krok po kroku
@@ -422,7 +434,7 @@ function Recipe() {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {currentStep ? ( // Używamy 'currentStep' zamiast 'recipe?.steps?.[currentStepIndex]' dla czytelności
+          {currentStep ? ( 
             <div>
               {/* NOWA ZMIANA: Wyświetlanie GIFa na podstawie mapowania */}
               {currentStepGif && (
@@ -434,7 +446,7 @@ function Recipe() {
                     maxHeight: "400px",
                     objectFit: "contain",
                     width: "100%",
-                  }} // Styl do dopasowania obrazka
+                  }} 
                 />
               )}
               {/* KONIEC NOWEJ ZMIANY */}
@@ -460,14 +472,27 @@ function Recipe() {
                   </li>
                 )}
               </ul>
+              {currentStep.ingredients && currentStep.ingredients.length > 0 && (
+                <>
+                  <h6>Składniki użyte w tym kroku:</h6>
+                  <ul>
+                    {currentStep.ingredients.map((ing, idx) => (
+                      <li key={idx}>
+                        {ing.name}: {ing.amount} {ing.unit || ""}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+
               <Button
                 variant="success"
                 onClick={() => {
-                  setIsStepTimerRunning(false); // Zatrzymujemy poprzedni timer
-                  setTimer(currentStep.duration || 0); // Ustawiamy czas na początek kroku
-                  setTimeout(() => setIsStepTimerRunning(true), 50); // Małe opóźnienie, aby timer mógł się zresetować
+                  setIsStepTimerRunning(false); 
+                  setTimer(currentStep.duration || 0);
+                  setTimeout(() => setIsStepTimerRunning(true), 50);
                 }}
-                disabled={isStepTimerRunning && timer > 0} // Wyłącz przycisk, jeśli timer działa
+                disabled={isStepTimerRunning && timer > 0} 
               >
                 {isStepTimerRunning && timer > 0 ? "W trakcie..." : "Start"}
               </Button>
@@ -481,8 +506,8 @@ function Recipe() {
             variant="secondary"
             onClick={() => {
               setCurrentStepIndex((prev) => Math.max(0, prev - 1));
-              setIsStepTimerRunning(false); // Reset timera przy zmianie kroku
-              setTimer(null); // Reset timera przy zmianie kroku
+              setIsStepTimerRunning(false);
+              setTimer(null); 
             }}
             disabled={currentStepIndex === 0}
           >
@@ -495,8 +520,8 @@ function Recipe() {
               setCurrentStepIndex((prev) =>
                 Math.min(recipe.steps.length - 1, prev + 1)
               );
-              setIsStepTimerRunning(false); // Reset timera przy zmianie kroku
-              setTimer(null); // Reset timera przy zmianie kroku
+              setIsStepTimerRunning(false);
+              setTimer(null);
             }}
             disabled={currentStepIndex >= recipe.steps.length - 1}
           >
@@ -506,8 +531,8 @@ function Recipe() {
             variant="danger"
             onClick={() => {
               setShowSlideshow(false);
-              setIsStepTimerRunning(false); // Upewnij się, że timer zatrzymuje się po zamknięciu modalu
-              setTimer(null); // Zresetuj timer
+              setIsStepTimerRunning(false);
+              setTimer(null);
             }}
           >
             Zakończ
