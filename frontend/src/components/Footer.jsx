@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 function Footer() {
   return (
-    <footer className="bg-light border-top mt-5 pt-5 pb-5">
+    <footer className="bg-light border-top pt-5 pb-5">
       <div className="container">
         <div className="row text-center text-md-start">
           {/* Polityka prywatności */}

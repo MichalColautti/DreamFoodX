@@ -44,22 +44,22 @@ function EditRecipe() {
     try {
       const res = await fetch(`/api/recipes/${id}`);
       const data = await res.json();
-      
+
       setForm({
         title: data.title,
         description: data.description,
-        image: null
+        image: null,
       });
-      
+
       if (data.imageUrl) {
         setPreview(data.imageUrl);
       }
-      
-      const convertedSteps = data.steps.map(step => ({
+
+      const convertedSteps = data.steps.map((step) => ({
         ...step,
-        ingredients: step.ingredients || []
+        ingredients: step.ingredients || [],
       }));
-      
+
       setSteps(convertedSteps);
     } catch (err) {
       console.error("Błąd pobierania przepisu:", err);
@@ -137,13 +137,21 @@ function EditRecipe() {
   };
 
   const handleRemoveStepIngredient = (index) => {
-    const newIngredients = currentStep.ingredients.filter((_, i) => i !== index);
+    const newIngredients = currentStep.ingredients.filter(
+      (_, i) => i !== index
+    );
     setCurrentStep((prev) => ({ ...prev, ingredients: newIngredients }));
   };
 
   const handleAddStep = () => {
-    const { action, description, temperature, bladeSpeed, duration, ingredients } =
-      currentStep;
+    const {
+      action,
+      description,
+      temperature,
+      bladeSpeed,
+      duration,
+      ingredients,
+    } = currentStep;
     if (!action || !description.trim()) {
       setMessage("Uzupełnij czynność i opis kroku.");
       return;
@@ -192,12 +200,16 @@ function EditRecipe() {
     setCurrentStep({
       action: stepToEdit.action,
       description: stepToEdit.description,
-      temperature: stepToEdit.temperature ? stepToEdit.temperature.toString() : "",
+      temperature: stepToEdit.temperature
+        ? stepToEdit.temperature.toString()
+        : "",
       bladeSpeed: stepToEdit.bladeSpeed ? stepToEdit.bladeSpeed.toString() : "",
-      duration: stepToEdit.duration ? (stepToEdit.duration / 60).toString() : "",
+      duration: stepToEdit.duration
+        ? (stepToEdit.duration / 60).toString()
+        : "",
       ingredients: [...stepToEdit.ingredients],
     });
-    
+
     handleRemoveStep(index);
   };
 
@@ -250,7 +262,7 @@ function EditRecipe() {
       } catch (parseErr) {
         console.error("Błąd parsowania JSON:", parseErr);
       }
-      
+
       if (response.ok) {
         setMessage(data.message || "Przepis zaktualizowany!");
         setTimeout(() => navigate(`/recipe/${id}`), 1500);
@@ -267,7 +279,12 @@ function EditRecipe() {
     <main className="container my-5">
       <h1 className="mb-4">Edytuj przepis</h1>
       {message && (
-        <div className={`alert ${message.includes("Błąd") ? "alert-danger" : "alert-success"}`} role="alert">
+        <div
+          className={`alert ${
+            message.includes("Błąd") ? "alert-danger" : "alert-success"
+          }`}
+          role="alert"
+        >
           {message}
         </div>
       )}
@@ -303,7 +320,9 @@ function EditRecipe() {
         </div>
 
         {/* Dodawanie/edycja kroku */}
-        <h2 className="mt-4 mb-3">{currentStep.action ? "Edytuj krok" : "Dodaj nowy krok"}</h2>
+        <h2 className="mt-4 mb-3">
+          {currentStep.action ? "Edytuj krok" : "Dodaj nowy krok"}
+        </h2>
         <div className="mb-3">
           <label htmlFor="stepAction" className="form-label">
             Czynność
@@ -335,7 +354,10 @@ function EditRecipe() {
             rows="3"
             value={currentStep.description}
             onChange={(e) =>
-              setCurrentStep((prev) => ({ ...prev, description: e.target.value }))
+              setCurrentStep((prev) => ({
+                ...prev,
+                description: e.target.value,
+              }))
             }
           ></textarea>
         </div>
@@ -350,7 +372,10 @@ function EditRecipe() {
               className="form-control"
               value={currentStep.temperature}
               onChange={(e) =>
-                setCurrentStep((prev) => ({ ...prev, temperature: e.target.value }))
+                setCurrentStep((prev) => ({
+                  ...prev,
+                  temperature: e.target.value,
+                }))
               }
               min="0"
               max="300"
@@ -367,7 +392,10 @@ function EditRecipe() {
               className="form-control"
               value={currentStep.bladeSpeed}
               onChange={(e) =>
-                setCurrentStep((prev) => ({ ...prev, bladeSpeed: e.target.value }))
+                setCurrentStep((prev) => ({
+                  ...prev,
+                  bladeSpeed: e.target.value,
+                }))
               }
               min="0"
               max="10"
@@ -384,7 +412,10 @@ function EditRecipe() {
               className="form-control"
               value={currentStep.duration}
               onChange={(e) =>
-                setCurrentStep((prev) => ({ ...prev, duration: e.target.value }))
+                setCurrentStep((prev) => ({
+                  ...prev,
+                  duration: e.target.value,
+                }))
               }
               min="1"
               placeholder="np. 10"
@@ -477,10 +508,10 @@ function EditRecipe() {
               ))}
             </select>
           </div>
-          <div className="col-md-2 d-flex align-items-end">
+          <div className="col-12 mt-3  d-flex align-items-end">
             <button
               type="button"
-              className="btn btn-secondary w-100"
+              className="btn btn-primary w-100"
               onClick={handleAddStepIngredient}
             >
               Dodaj składnik
@@ -514,22 +545,18 @@ function EditRecipe() {
 
         <button
           type="button"
-          className="btn btn-primary mb-4"
+          className="btn btn-primary col-12 mb-4"
           onClick={handleAddStep}
         >
           {currentStep.action ? "Zaktualizuj krok" : "Dodaj krok"}
         </button>
-
         {/* Lista wszystkich kroków */}
         {steps.length > 0 && (
           <>
             <h2 className="mb-3">Lista kroków przygotowania</h2>
             <ul className="list-group mb-4">
               {steps.map((step, index) => (
-                <li
-                  key={index}
-                  className="list-group-item d-flex flex-column"
-                >
+                <li key={index} className="list-group-item d-flex flex-column">
                   <div className="d-flex justify-content-between align-items-center">
                     <strong>
                       {index + 1}. {step.action} - {step.description}
