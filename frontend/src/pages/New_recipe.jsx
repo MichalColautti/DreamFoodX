@@ -190,14 +190,22 @@ function AddRecipe() {
         body: formData,
       });
 
-      const data = await response.json();
+      const text = await response.text();
+      console.log("Odpowiedź serwera:", text);
+      
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (parseErr) {
+        console.error("Błąd parsowania JSON:", parseErr);
+      }
       if (response.ok) {
         setMessage(data.message || "Przepis dodany!");
         setForm({ title: "", description: "", image: null });
         setIngredientList([]);
         setSteps([]);
         setPreview("");
-        document.getElementById("image-upload").value = "";
+        document.getElementById("recipeImage").value = "";
       } else {
         setMessage(data.message || "Błąd podczas dodawania przepisu.");
       }
