@@ -45,22 +45,22 @@ function EditRecipe() {
     try {
       const res = await fetch(`/api/recipes/${id}`);
       const data = await res.json();
-      
+
       setForm({
         title: data.title,
         description: data.description,
-        image: null
+        image: null,
       });
-      
+
       if (data.imageUrl) {
         setPreview(data.imageUrl);
       }
-      
-      const convertedSteps = data.steps.map(step => ({
+
+      const convertedSteps = data.steps.map((step) => ({
         ...step,
-        ingredients: step.ingredients || []
+        ingredients: step.ingredients || [],
       }));
-      
+
       setSteps(convertedSteps);
     } catch (err) {
       console.error("Błąd pobierania przepisu:", err);
@@ -138,7 +138,9 @@ function EditRecipe() {
   };
 
   const handleRemoveStepIngredient = (index) => {
-    const newIngredients = currentStep.ingredients.filter((_, i) => i !== index);
+    const newIngredients = currentStep.ingredients.filter(
+      (_, i) => i !== index
+    );
     setCurrentStep((prev) => ({ ...prev, ingredients: newIngredients }));
   };
 
@@ -281,7 +283,7 @@ function EditRecipe() {
       } catch (parseErr) {
         console.error("Błąd parsowania JSON:", parseErr);
       }
-      
+
       if (response.ok) {
         setMessage(data.message || "Przepis zaktualizowany!");
         setTimeout(() => navigate(`/recipe/${id}`), 1500);
@@ -298,7 +300,12 @@ function EditRecipe() {
     <main className="container my-5">
       <h1 className="mb-4">Edytuj przepis</h1>
       {message && (
-        <div className={`alert ${message.includes("Błąd") ? "alert-danger" : "alert-success"}`} role="alert">
+        <div
+          className={`alert ${
+            message.includes("Błąd") ? "alert-danger" : "alert-success"
+          }`}
+          role="alert"
+        >
           {message}
         </div>
       )}

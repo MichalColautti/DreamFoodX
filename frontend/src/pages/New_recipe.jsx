@@ -116,7 +116,9 @@ function AddRecipe() {
   };
 
   const handleRemoveStepIngredient = (index) => {
-    const newIngredients = currentStep.ingredients.filter((_, i) => i !== index);
+    const newIngredients = currentStep.ingredients.filter(
+      (_, i) => i !== index
+    );
     setCurrentStep((prev) => ({ ...prev, ingredients: newIngredients }));
   };
 
@@ -125,12 +127,16 @@ function AddRecipe() {
     setCurrentStep({
       action: stepToEdit.action,
       description: stepToEdit.description,
-      temperature: stepToEdit.temperature ? stepToEdit.temperature.toString() : "",
+      temperature: stepToEdit.temperature
+        ? stepToEdit.temperature.toString()
+        : "",
       bladeSpeed: stepToEdit.bladeSpeed ? stepToEdit.bladeSpeed.toString() : "",
-      duration: stepToEdit.duration ? (stepToEdit.duration / 60).toString() : "",
+      duration: stepToEdit.duration
+        ? (stepToEdit.duration / 60).toString()
+        : "",
       ingredients: [...stepToEdit.ingredients],
     });
-    
+
     handleRemoveStep(index);
   };
 
@@ -318,7 +324,11 @@ function AddRecipe() {
           return;
         }
 
-        setForm({ title: data.title, description: data.description, image: null });
+        setForm({
+          title: data.title,
+          description: data.description,
+          image: null,
+        });
         setSteps(data.steps);
         setPreview("");
         setMessage("Dane zaimportowane z pliku JSON.");
