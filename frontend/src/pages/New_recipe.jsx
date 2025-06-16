@@ -218,6 +218,11 @@ function AddRecipe() {
       return;
     }
 
+    if (!form.image) {
+      setMessage("Musisz dodać obrazek przepisu!");
+      return;
+    }
+
     if (steps.length === 0) {
       setMessage("Dodaj przynajmniej jeden krok przygotowania.");
       return;
@@ -228,9 +233,7 @@ function AddRecipe() {
     formData.append("description", form.description);
     formData.append("author", user.username);
     formData.append("steps", JSON.stringify(steps));
-    if (form.image) {
-      formData.append("image", form.image);
-    }
+    formData.append("image", form.image); 
 
     try {
       const response = await fetch("/api/recipes", {
@@ -248,6 +251,7 @@ function AddRecipe() {
       if (response.ok) {
         setMessage(data.message || "Przepis dodany!");
         resetAllForm();
+        navigate('/my-recipes');
       } else {
         setMessage(data.message || "Błąd podczas dodawania przepisu.");
       }

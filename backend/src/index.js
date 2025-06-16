@@ -516,6 +516,10 @@ app.post("/api/recipes", upload.single("image"), async (req, res) => {
       return res.status(400).json({ message: "Brakuje wymaganych danych." });
     }
 
+    if (!req.file) {
+      return res.status(400).json({ message: "Obrazek jest wymagany." });
+    }
+
     const [recipeResult] = await db
       .promise()
       .execute(
