@@ -10,7 +10,6 @@ const actionGifs = {
   gotowanie: "/gifs/gotowanie.gif",
   pieczenie: "/gifs/pieczenie.gif",
   smażenie: "/gifs/smażenie.gif",
-  default: "/gifs/default.gif",
 };
 
 function Recipe() {
@@ -26,6 +25,7 @@ function Recipe() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [timer, setTimer] = useState(null);
   const [isStepTimerRunning, setIsStepTimerRunning] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(0);
 
   const handleRating = useCallback(async (star) => {
     if (!user) {
@@ -62,6 +62,43 @@ function Recipe() {
       setError("Wystąpił błąd przy ocenianiu");
     }
   }, [id, user]);
+
+  const startTimer = useCallback((durationInMinutes) => {
+    const durationInSeconds = Math.floor(durationInMinutes * 60); 
+    setIsStepTimerRunning(true);
+    setTimeLeft(durationInSeconds);
+    
+    const timerId = setInterval(() => {
+      setTimeLeft(prevTime => {
+        if (prevTime <= 1) {
+          clearInterval(timerId);
+          setIsStepTimerRunning(false);
+          return 0;
+        }
+        return prevTime - 1;
+      });
+    }, 1000);
+    
+    setTimer(timerId);
+    return timerId;
+  }, []);
+
+  const stopTimer = useCallback(() => {
+    if (timer) {
+      clearInterval(timer);
+      setTimer(null);
+    }
+    setIsStepTimerRunning(false);
+    setTimeLeft(0);
+  }, [timer]);
+
+  useEffect(() => {
+    return () => {
+      if (timer) {
+        clearInterval(timer);
+      }
+    };
+  }, [timer]);
 
   const handleExportToJSON = () => {
     if (!recipe) return;
@@ -163,6 +200,12 @@ function Recipe() {
     ? (actionGifs[currentStep.action?.toLowerCase()] || actionGifs.default)
     : null;
 
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
     <div className="container my-5">
       {error && <div className="alert alert-danger">{error}</div>}
@@ -237,12 +280,12 @@ function Recipe() {
 
         <div className="mt-3">
           <button className="btn btn-outline-success me-2" onClick={handleExportToJSON}>Eksportuj do JSON</button>
-          <button className="btn btn-outline-warning" onClick={() => { setCurrentStepIndex(0); setShowSlideshow(true); setIsStepTimerRunning(false); setTimer(null); }}>Krok po kroku</button>
+          <button className="btn btn-outline-warning" onClick={() => { setCurrentStepIndex(0); setShowSlideshow(true); stopTimer(); }}>Krok po kroku</button>
         </div>
       </div>
 
       {/* Slideshow */}
-      <Modal show={showSlideshow} onHide={() => setShowSlideshow(false)} centered size="lg">
+      <Modal show={showSlideshow} onHide={() => { setShowSlideshow(false); stopTimer(); }} centered size="lg">
         <Modal.Header closeButton>
           <Modal.Title>Krok {currentStepIndex + 1} z {recipe.steps.length}</Modal.Title>
         </Modal.Header>
@@ -261,6 +304,36 @@ function Recipe() {
                     {currentStep.bladeSpeed && <li>Prędkość: {currentStep.bladeSpeed}</li>}
                     {currentStep.duration && <li>Czas: {Math.floor(currentStep.duration / 60)} min</li>}
                   </ul>
+                  {currentStep.duration && (
+                    <div className="mt-3">
+                      {isStepTimerRunning ? (
+                        <>
+                          <div className="progress mb-2">
+                            <div 
+                              className="progress-bar progress-bar-striped progress-bar-animated" 
+                              role="progressbar" 
+                              style={{ width: `${(timeLeft / (currentStep.duration / 60)) * 100}%` }}
+                              aria-valuenow={timeLeft}
+                              aria-valuemin="0"
+                              aria-valuemax={currentStep.duration / 60}
+                            >
+                              {formatTime(timeLeft)}
+                            </div>
+                          </div>
+                          <button className="btn btn-danger" onClick={stopTimer}>
+                            Zatrzymaj odliczanie
+                          </button>
+                        </>
+                      ) : (
+                        <button 
+                          className="btn btn-primary"
+                          onClick={() => startTimer(currentStep.duration/60)}
+                        >
+                          Rozpocznij odliczanie ({Math.floor(currentStep.duration/60)} min)
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
               {currentStep.type === "ingredient" && (
@@ -284,9 +357,9 @@ function Recipe() {
           ) : <p>Brak danych kroku.</p>}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setCurrentStepIndex((prev) => Math.max(0, prev - 1))} disabled={currentStepIndex === 0}>Poprzedni</Button>
-          <Button variant="primary" onClick={() => setCurrentStepIndex((prev) => Math.min(recipe.steps.length - 1, prev + 1))} disabled={currentStepIndex >= recipe.steps.length - 1}>Następny</Button>
-          <Button variant="danger" onClick={() => setShowSlideshow(false)}>Zakończ</Button>
+          <Button variant="secondary" onClick={() => { setCurrentStepIndex((prev) => Math.max(0, prev - 1)); stopTimer(); }} disabled={currentStepIndex === 0}>Poprzedni</Button>
+          <Button variant="primary" onClick={() => { setCurrentStepIndex((prev) => Math.min(recipe.steps.length - 1, prev + 1)); stopTimer(); }} disabled={currentStepIndex >= recipe.steps.length - 1}>Następny</Button>
+          <Button variant="danger" onClick={() => { setShowSlideshow(false); stopTimer(); }}>Zakończ</Button>
         </Modal.Footer>
       </Modal>
     </div>

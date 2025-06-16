@@ -14,6 +14,7 @@ function EditRecipe() {
   const [categories, setCategories] = useState([]);
   const [steps, setSteps] = useState([]);
   const [currentStep, setCurrentStep] = useState({
+    type: "",
     action: "",
     description: "",
     temperature: "",
@@ -28,7 +29,6 @@ function EditRecipe() {
   const [stepCustomIngredient, setStepCustomIngredient] = useState("");
   const [stepQuantity, setStepQuantity] = useState("");
   const [stepUnit, setStepUnit] = useState("g");
-  const [stepType, setStepType] = useState("");
 
   const allowedUnits = ["g", "ml", "l", "szt"];
 
@@ -45,22 +45,22 @@ function EditRecipe() {
     try {
       const res = await fetch(`/api/recipes/${id}`);
       const data = await res.json();
-
+      
       setForm({
         title: data.title,
         description: data.description,
-        image: null,
+        image: null
       });
-
+      
       if (data.imageUrl) {
         setPreview(data.imageUrl);
       }
-
-      const convertedSteps = data.steps.map((step) => ({
+      
+      const convertedSteps = data.steps.map(step => ({
         ...step,
-        ingredients: step.ingredients || [],
+        ingredients: step.ingredients || []
       }));
-
+      
       setSteps(convertedSteps);
     } catch (err) {
       console.error("Błąd pobierania przepisu:", err);
@@ -138,16 +138,14 @@ function EditRecipe() {
   };
 
   const handleRemoveStepIngredient = (index) => {
-    const newIngredients = currentStep.ingredients.filter(
-      (_, i) => i !== index
-    );
+    const newIngredients = currentStep.ingredients.filter((_, i) => i !== index);
     setCurrentStep((prev) => ({ ...prev, ingredients: newIngredients }));
   };
 
   const handleAddStep = () => {
     let newStep = {};
 
-    if (stepType === "action") {
+    if (currentStep.type === "action") {
       const { action, description, temperature, bladeSpeed, duration } = currentStep;
 
       if (!action || !description.trim()) {
@@ -166,28 +164,20 @@ function EditRecipe() {
       };
     }
 
-    else if (stepType === "ingredient") {
-      const name = stepCustomIngredient.trim() || stepSelectedIngredient;
-      const qty = stepQuantity.trim();
-
-      if (!name) {
-        setMessage("Proszę wybrać lub wpisać składnik.");
-        return;
-      }
-      const num = parseFloat(qty);
-      if (isNaN(num) || num <= 0) {
-        setMessage("Wprowadź poprawną ilość.");
+    else if (currentStep.type === "ingredient") {
+      if (currentStep.ingredients.length === 0) {
+        setMessage("Dodaj przynajmniej jeden składnik.");
         return;
       }
 
       newStep = {
         type: "ingredient",
         description: currentStep.description || "",
-        ingredients: [{ name, amount: num, unit: stepUnit }]
+        ingredients: [...currentStep.ingredients]
       };
     }
 
-    else if (stepType === "description") {
+    else if (currentStep.type === "description") {
       if (!currentStep.description) {
         setMessage("Dodaj opis.");
         return;
@@ -201,8 +191,8 @@ function EditRecipe() {
 
     setSteps(prev => [...prev, newStep]);
 
-    setStepType("");
     setCurrentStep({
+      type: "",
       action: "",
       description: "",
       temperature: "",
@@ -222,6 +212,7 @@ function EditRecipe() {
   const handleEditStep = (index) => {
     const stepToEdit = steps[index];
     setCurrentStep({
+      type: stepToEdit.type,
       action: stepToEdit.action || "",
       description: stepToEdit.description || "",
       temperature: stepToEdit.temperature ? stepToEdit.temperature.toString() : "",
@@ -229,7 +220,6 @@ function EditRecipe() {
       duration: stepToEdit.duration ? (stepToEdit.duration / 60).toString() : "",
       ingredients: [...(stepToEdit.ingredients || [])],
     });
-    setStepType(stepToEdit.type || "");
     
     handleRemoveStep(index);
   };
@@ -283,7 +273,7 @@ function EditRecipe() {
       } catch (parseErr) {
         console.error("Błąd parsowania JSON:", parseErr);
       }
-
+      
       if (response.ok) {
         setMessage(data.message || "Przepis zaktualizowany!");
         setTimeout(() => navigate(`/recipe/${id}`), 1500);
@@ -300,12 +290,7 @@ function EditRecipe() {
     <main className="container my-5">
       <h1 className="mb-4">Edytuj przepis</h1>
       {message && (
-        <div
-          className={`alert ${
-            message.includes("Błąd") ? "alert-danger" : "alert-success"
-          }`}
-          role="alert"
-        >
+        <div className={`alert ${message.includes("Błąd") ? "alert-danger" : "alert-success"}`} role="alert">
           {message}
         </div>
       )}
@@ -340,17 +325,19 @@ function EditRecipe() {
           ></textarea>
         </div>
 
-        <h2 className="mt-4 mb-3">Dodaj krok przygotowania</h2>
+        <h2 className="mt-4 mb-3">
+          {currentStep.type ? `Edytuj krok (${currentStep.type})` : "Dodaj nowy krok"}
+        </h2>
 
         {/* Wybór typu kroku */}
         <div className="mb-3">
           <label className="form-label">Typ kroku</label>
           <select
             className="form-select"
-            value={stepType}
+            value={currentStep.type}
             onChange={(e) => {
-              setStepType(e.target.value);
               setCurrentStep({
+                type: e.target.value,
                 action: "",
                 description: "",
                 temperature: "",
@@ -367,7 +354,7 @@ function EditRecipe() {
           </select>
         </div>
 
-        {stepType === "action" && (
+        {currentStep.type === "action" && (
           <>
             <div className="mb-3">
               <label htmlFor="stepAction" className="form-label">
@@ -460,7 +447,7 @@ function EditRecipe() {
           </>
         )}
 
-        {stepType === "ingredient" && (
+        {currentStep.type === "ingredient" && (
           <>
             <div className="mb-3">
               <label className="form-label">Opis kroku (opcjonalnie)</label>
@@ -566,11 +553,21 @@ function EditRecipe() {
                   ))}
                 </select>
               </div>
+
+              <div className="col-md-2 d-flex align-items-end">
+                <button
+                  type="button"
+                  className="btn btn-primary w-100"
+                  onClick={handleAddStepIngredient}
+                >
+                  Dodaj składnik
+                </button>
+              </div>
             </div>
           </>
         )}
 
-        {stepType === "description" && (
+        {currentStep.type === "description" && (
           <>
             <div className="mb-3">
               <label className="form-label">Opis kroku</label>
@@ -585,14 +582,6 @@ function EditRecipe() {
             </div>
           </>
         )}
-
-        <button
-          type="button"
-          className="btn btn-primary mb-4"
-          onClick={handleAddStep}
-        >
-          Dodaj krok
-        </button>
 
         {/* Lista składników kroku */}
         {currentStep.ingredients.length > 0 && (
@@ -618,6 +607,38 @@ function EditRecipe() {
           </div>
         )}
 
+        <div className="d-flex gap-2 mb-4">
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleAddStep}
+            disabled={!currentStep.type}
+          >
+            {currentStep.type ? "Dodaj krok" : "Wybierz typ kroku"}
+          </button>
+          
+          {currentStep.type && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                setCurrentStep({
+                  type: "",
+                  action: "",
+                  description: "",
+                  temperature: "",
+                  bladeSpeed: "",
+                  duration: "",
+                  ingredients: []
+                });
+                setMessage("");
+              }}
+            >
+              Anuluj
+            </button>
+          )}
+        </div>
+
         {/* Lista wszystkich kroków */}
         {steps.length > 0 && (
           <>
@@ -626,17 +647,32 @@ function EditRecipe() {
               {steps.map((step, index) => (
                 <li key={index} className="list-group-item d-flex flex-column">
                   <div className="d-flex justify-content-between align-items-center">
-                    <strong>
-                      {index + 1}.{" "}
-                      {step.type === "action" && `${step.action} - ${step.description}`}
-                      {step.type === "ingredient" && `${step.description} (dodano składnik)`}
-                      {step.type === "description" && `${step.description}`}
-                    </strong>
-                    <div className="d-flex gap-2 mt-2">
+                    <div>
+                      <strong>
+                        {index + 1}.{" "}
+                        {step.type === "action" && `${step.action} - ${step.description}`}
+                        {step.type === "ingredient" && (
+                          step.description 
+                            ? `${step.description}`
+                            : `Dodano ${step.ingredients.length} składniki`
+                        )}
+                        {step.type === "description" && step.description}
+                      </strong>
+                    </div>
+                    <div className="d-flex gap-2">
+                      <button
+                        type="button"
+                        className="btn btn-info btn-sm"
+                        onClick={() => handleEditStep(index)}
+                        title="Edytuj krok"
+                      >
+                        Edytuj
+                      </button>
                       <button
                         type="button"
                         className="btn btn-danger btn-sm"
                         onClick={() => handleRemoveStep(index)}
+                        title="Usuń krok"
                       >
                         Usuń
                       </button>
@@ -645,6 +681,7 @@ function EditRecipe() {
                         className="btn btn-success btn-sm"
                         onClick={() => moveStepUp(index)}
                         disabled={index === 0}
+                        title="Przesuń w górę"
                       >
                         Przesuń w górę
                       </button>
@@ -653,6 +690,7 @@ function EditRecipe() {
                         className="btn btn-success btn-sm"
                         onClick={() => moveStepDown(index)}
                         disabled={index === steps.length - 1}
+                        title="Przesuń w dół"
                       >
                         Przesuń w dół
                       </button>
@@ -661,26 +699,24 @@ function EditRecipe() {
 
                   {/* Dodatkowe informacje dla kroku akcyjnego */}
                   {step.type === "action" && (
-                    <div>
+                    <div className="mt-2">
                       {step.temperature !== null && (
-                        <small>Temperatura: {step.temperature} °C</small>
+                        <small className="me-2">Temperatura: {step.temperature}°C</small>
                       )}
                       {step.bladeSpeed !== null && (
-                        <small className="ms-3">Prędkość noża: {step.bladeSpeed}</small>
+                        <small className="me-2">Prędkość noża: {step.bladeSpeed}</small>
                       )}
                       {step.duration !== null && (
-                        <small className="ms-3">
-                          Czas: {Math.round(step.duration / 60)} minut
-                        </small>
+                        <small>Czas: {Math.round(step.duration / 60)} min</small>
                       )}
                     </div>
                   )}
 
-                  {/* Składniki wyłącznie dla kroku ingredient */}
-                  {step.type === "ingredient" && step.ingredients && (
+                  {/* Składniki */}
+                  {(step.type === "ingredient" || step.type === "action") && step.ingredients && step.ingredients.length > 0 && (
                     <div className="mt-2">
                       <strong>Składniki:</strong>
-                      <ul>
+                      <ul className="mb-0">
                         {step.ingredients.map((ing, i) => (
                           <li key={i}>
                             {ing.name} - {ing.amount} {ing.unit}
