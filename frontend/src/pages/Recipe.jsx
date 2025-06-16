@@ -102,14 +102,40 @@ function Recipe() {
 
   const handleExportToJSON = () => {
     if (!recipe) return;
+    
     const recipeToExport = {
       title: recipe.title,
       description: recipe.description,
       author: recipe.author,
-      steps: recipe.steps,
+      image: recipe.image,
+      rating: recipe.rating,
+      ratingCount: recipe.ratingCount,
+      steps: recipe.steps.map(step => ({
+        type: step.type,
+        order: step.order,
+        description: step.description,
+        ...(step.type === 'action' && {
+          action: step.action,
+          temperature: step.temperature,
+          bladeSpeed: step.bladeSpeed,
+          duration: step.duration
+        }),
+        ...(step.type === 'ingredient' && {
+          ingredients: step.ingredients.map(ing => ({
+            name: ing.name,
+            amount: ing.amount,
+            unit: ing.unit
+          }))
+        })
+      })),
+      ingredientsSummary: sumIngredients(recipe.steps),
+      createdAt: recipe.created_at
     };
-    const blob = new Blob([JSON.stringify(recipeToExport, null, 2)], { type: "application/json" });
-    saveAs(blob, `${recipe.title || "przepis"}.json`);
+    
+    const blob = new Blob([JSON.stringify(recipeToExport, null, 2)], { 
+      type: "application/json" 
+    });
+    saveAs(blob, `${recipe.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || "przepis"}.json`);
   };
 
   const handleDeleteRecipe = async () => {

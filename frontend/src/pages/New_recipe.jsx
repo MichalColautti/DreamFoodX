@@ -290,28 +290,58 @@ function AddRecipe() {
       try {
         const data = JSON.parse(event.target.result);
 
-        if (
-          !data.title ||
-          !data.description ||
-          !Array.isArray(data.steps) ||
-          data.steps.some(
-            (step) =>
-              !step.action ||
-              !step.description ||
-              !Array.isArray(step.ingredients)
-          )
-        ) {
-          setMessage("Nieprawidłowy format pliku JSON.");
+        if (!data.title || !data.description) {
+          setMessage("Plik JSON musi zawierać tytuł i opis przepisu.");
           return;
         }
 
-        setForm({ title: data.title, description: data.description, image: null });
-        setSteps(data.steps);
+        if (!Array.isArray(data.steps) || data.steps.length === 0) {
+          setMessage("Plik JSON musi zawierać przynajmniej jeden krok przygotowania.");
+          return;
+        }
+
+        setForm({ 
+          title: data.title, 
+          description: data.description, 
+          image: null 
+        });
+
+        const importedSteps = data.steps.map(step => {
+          if (step.type === 'action') {
+            return {
+              type: 'action',
+              action: step.action,
+              description: step.description,
+              temperature: step.temperature || null,
+              bladeSpeed: step.bladeSpeed || null,
+              duration: step.duration ? 
+                (typeof step.duration === 'number' ? step.duration : parseInt(step.duration)) 
+                : null,
+              ingredients: step.ingredients || []
+            };
+          }
+          
+          if (step.type === 'ingredient') {
+            return {
+              type: 'ingredient',
+              description: step.description || '',
+              ingredients: step.ingredients || []
+            };
+          }
+          
+          return {
+            type: 'description',
+            description: step.description
+          };
+        });
+
+        setSteps(importedSteps);
         setPreview("");
-        setMessage("Dane zaimportowane z pliku JSON.");
+        setMessage("Dane zaimportowane pomyślnie z pliku JSON.");
+
       } catch (error) {
         console.error("Błąd parsowania JSON:", error);
-        setMessage("Błąd parsowania pliku JSON.");
+        setMessage("Nieprawidłowy format pliku JSON. Upewnij się, że plik jest poprawnym przepisem.");
       }
     };
     reader.readAsText(file);
