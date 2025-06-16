@@ -38,13 +38,15 @@ CREATE TABLE IF NOT EXISTS steps (
   id INT AUTO_INCREMENT PRIMARY KEY,
   recipe_id INT NOT NULL,
   step_order INT NOT NULL,
-  action VARCHAR(50) NOT NULL,
+  type VARCHAR(20) NOT NULL,
+  action VARCHAR(50),
   description TEXT NOT NULL,
   temperature INT DEFAULT NULL,      
   blade_speed INT DEFAULT NULL,       
   duration INT DEFAULT NULL,          
   FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE
 );
+
 
 CREATE TABLE IF NOT EXISTS step_ingredients (
   id INT AUTO_INCREMENT PRIMARY KEY,

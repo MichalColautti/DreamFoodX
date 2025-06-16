@@ -217,12 +217,10 @@ app.get("/api/recipes/:id", async (req, res) => {
     }
     const recipe = recipeResults[0];
 
-    const [stepResults] = await db
-      .promise()
-      .execute(
-        "SELECT id, step_order, action, description, temperature, blade_speed, duration FROM steps WHERE recipe_id = ? ORDER BY step_order",
-        [recipeId]
-      );
+    const [stepResults] = await db.promise().execute(
+      "SELECT id, step_order, type, action, description, temperature, blade_speed, duration FROM steps WHERE recipe_id = ? ORDER BY step_order",
+      [recipeId]
+    );
 
     for (let step of stepResults) {
       const [ingredientResults] = await db
@@ -241,6 +239,7 @@ app.get("/api/recipes/:id", async (req, res) => {
     recipe.steps = stepResults.map(row => ({
       id: row.id,
       order: row.step_order,
+      type: row.type,
       action: row.action,
       description: row.description,
       temperature: row.temperature,
@@ -529,26 +528,27 @@ app.post("/api/recipes", upload.single("image"), async (req, res) => {
       const step = steps[i];
       const [stepResult] = await db.promise().execute(
         `INSERT INTO steps
-        (recipe_id, step_order, action, description, temperature, blade_speed, duration)
-        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        (recipe_id, step_order, type, action, description, temperature, blade_speed, duration)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           recipeId,
           i + 1,
-          step.action,
+          step.type,
+          step.type === 'action' ? step.action : null,
           step.description,
-          step.temperature || null,
-          step.bladeSpeed || null,
-          step.duration || null,
+          step.type === 'action' ? step.temperature : null,
+          step.type === 'action' ? step.bladeSpeed : null,
+          step.type === 'action' ? step.duration : null,
         ]
       );
 
       const stepId = stepResult.insertId;
 
-      if (step.ingredients) {
+      if (step.type === 'ingredient' && step.ingredients) {
         for (const ingredient of step.ingredients) {
           await db.promise().execute(
             `INSERT INTO step_ingredients (step_id, name, amount, unit)
-             VALUES (?, ?, ?, ?)`,
+            VALUES (?, ?, ?, ?)`,
             [
               stepId,
               ingredient.name,
@@ -625,9 +625,9 @@ app.put("/api/recipes/:id", upload.single("image"), async (req, res) => {
 
   try {
     const updateQuery = `
-    UPDATE recipes
-    SET title = ?, description = ?${req.file ? ", image = ?" : ""}
-    WHERE id = ?
+      UPDATE recipes
+      SET title = ?, description = ?${req.file ? ", image = ?" : ""}
+      WHERE id = ?
     `;
     const updateParams = req.file
       ? [title, description, `/uploads/${req.file.filename}`, recipeId]
@@ -635,37 +635,50 @@ app.put("/api/recipes/:id", upload.single("image"), async (req, res) => {
 
     await db.promise().execute(updateQuery, updateParams);
 
-    const [oldSteps] = await db.promise().execute("SELECT id FROM steps WHERE recipe_id = ?", [recipeId]);
+    const [oldSteps] = await db.promise().execute(
+      "SELECT id FROM steps WHERE recipe_id = ?", 
+      [recipeId]
+    );
+    
     for (const step of oldSteps) {
-      await db.promise().execute("DELETE FROM step_ingredients WHERE step_id = ?", [step.id]);
+      await db.promise().execute(
+        "DELETE FROM step_ingredients WHERE step_id = ?", 
+        [step.id]
+      );
     }
-
-    await db.promise().execute("DELETE FROM steps WHERE recipe_id = ?", [recipeId]);
+    
+    await db.promise().execute(
+      "DELETE FROM steps WHERE recipe_id = ?", 
+      [recipeId]
+    );
 
     const parsedSteps = JSON.parse(steps);
     for (let i = 0; i < parsedSteps.length; i++) {
       const step = parsedSteps[i];
+      
       const [stepResult] = await db.promise().execute(
         `INSERT INTO steps
-        (recipe_id, step_order, action, description, temperature, blade_speed, duration)
-        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        (recipe_id, step_order, type, action, description, temperature, blade_speed, duration)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           recipeId,
           i + 1,
-          step.action,
+          step.type,
+          step.type === 'action' ? step.action : null,
           step.description,
-          step.temperature,
-          step.bladeSpeed,
-          step.duration,
+          step.type === 'action' ? step.temperature : null,
+          step.type === 'action' ? step.bladeSpeed : null,
+          step.type === 'action' ? step.duration : null,
         ]
       );
 
       const stepId = stepResult.insertId;
 
-      if (step.ingredients) {
+      if ((step.type === 'ingredient' || step.type === 'action') && step.ingredients) {
         for (const ing of step.ingredients) {
           await db.promise().execute(
-            `INSERT INTO step_ingredients (step_id, name, amount, unit) VALUES (?, ?, ?, ?)`,
+            `INSERT INTO step_ingredients (step_id, name, amount, unit) 
+            VALUES (?, ?, ?, ?)`,
             [stepId, ing.name, ing.amount, ing.unit]
           );
         }

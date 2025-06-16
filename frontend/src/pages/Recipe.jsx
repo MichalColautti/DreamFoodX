@@ -5,11 +5,11 @@ import { saveAs } from "file-saver";
 import { Modal, Button } from "react-bootstrap";
 
 const actionGifs = {
-  siekanie: "/gifs/siekanie.gif", // Przykładowa ścieżka do GIFa dla "siekanie"
-  mieszanie: "/gifs/mieszanie.gif", // Przykładowa ścieżka do GIFa dla "mieszanie"
-  gotowanie: "/gifs/gotowanie.gif", // Przykładowa ścieżka do GIFa dla "gotowanie"
-  pieczenie: "/gifs/pieczenie.gif", // Przykładowa ścieżka do GIFa dla "pieczenie"
-  smażenie: "/gifs/smażenie.gif", // Przykładowa ścieżka do GIFa dla "smażenie" (uwaga na polskie znaki w ścieżkach URL)
+  siekanie: "/gifs/siekanie.gif",
+  mieszanie: "/gifs/mieszanie.gif",
+  gotowanie: "/gifs/gotowanie.gif",
+  pieczenie: "/gifs/pieczenie.gif",
+  smażenie: "/gifs/smażenie.gif",
   default: "/gifs/default.gif",
 };
 
@@ -27,80 +27,61 @@ function Recipe() {
   const [timer, setTimer] = useState(null);
   const [isStepTimerRunning, setIsStepTimerRunning] = useState(false);
 
-  const handleRating = useCallback(
-    async (star) => {
-      if (!user) {
-        alert("Zaloguj się, aby ocenić przepis!");
-        return;
-      }
-
-      try {
-        const responseCheck = await fetch(
-          `/api/recipes/${id}/check-already-rated?username=${user.username}`
-        );
-
-        if (responseCheck.ok) {
-          const dataCheck = await responseCheck.json();
-          if (dataCheck.alreadyRated) {
-            alert("Już oceniłeś ten przepis.");
-            return;
-          }
+  const handleRating = useCallback(async (star) => {
+    if (!user) {
+      alert("Zaloguj się, aby ocenić przepis!");
+      return;
+    }
+    try {
+      const responseCheck = await fetch(`/api/recipes/${id}/check-already-rated?username=${user.username}`);
+      if (responseCheck.ok) {
+        const dataCheck = await responseCheck.json();
+        if (dataCheck.alreadyRated) {
+          alert("Już oceniłeś ten przepis.");
+          return;
         }
-
-        const response = await fetch(`/api/recipes/${id}/rate`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ rating: star, username: user.username }),
-        });
-
-        if (response.ok) {
-          const updated = await response.json();
-          setRecipe((prev) => ({
-            ...prev,
-            rating: updated.rating,
-            ratingCount: updated.ratingCount,
-          }));
-          setUserRating(star);
-        } else {
-          alert("Błąd przy ocenianiu.");
-        }
-      } catch (err) {
-        console.error("Błąd przy ocenianiu:", err);
-        setError("Wystąpił błąd przy ocenianiu");
       }
-    },
-    [id, user]
-  );
+      const response = await fetch(`/api/recipes/${id}/rate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating: star, username: user.username }),
+      });
+      if (response.ok) {
+        const updated = await response.json();
+        setRecipe((prev) => ({
+          ...prev,
+          rating: updated.rating,
+          ratingCount: updated.ratingCount,
+        }));
+        setUserRating(star);
+      } else {
+        alert("Błąd przy ocenianiu.");
+      }
+    } catch (err) {
+      console.error("Błąd przy ocenianiu:", err);
+      setError("Wystąpił błąd przy ocenianiu");
+    }
+  }, [id, user]);
 
   const handleExportToJSON = () => {
     if (!recipe) return;
-
     const recipeToExport = {
       title: recipe.title,
       description: recipe.description,
       author: recipe.author,
-      ingredients: recipe.ingredients,
       steps: recipe.steps,
     };
-
-    const blob = new Blob([JSON.stringify(recipeToExport, null, 2)], {
-      type: "application/json",
-    });
+    const blob = new Blob([JSON.stringify(recipeToExport, null, 2)], { type: "application/json" });
     saveAs(blob, `${recipe.title || "przepis"}.json`);
   };
 
   const handleDeleteRecipe = async () => {
-    const confirmDelete = window.confirm('Czy na pewno chcesz usunąć ten przepis?');
-    if (!confirmDelete) return;
-
+    if (!window.confirm('Czy na pewno chcesz usunąć ten przepis?')) return;
     try {
-      const response = await fetch(`/api/recipes/${id}`, {
-        method: 'DELETE',
-      });
-
+      const response = await fetch(`/api/recipes/${id}`, { method: 'DELETE' });
       if (response.ok) {
         alert('Przepis został usunięty.');
-        window.location.href = '/'; 
+        navigate('/');
       } else {
         const data = await response.json();
         alert(`Błąd: ${data.message || 'Nie udało się usunąć przepisu.'}`);
@@ -121,106 +102,51 @@ function Recipe() {
         } else {
           setRecipe(null);
         }
-      } catch (error) {
-        console.error("Błąd przy pobieraniu przepisu:", error);
+      } catch (err) {
+        console.error("Błąd przy pobieraniu przepisu:", err);
         setRecipe(null);
         setError("Wystąpił błąd przy pobieraniu przepisu.");
       } finally {
         setLoading(false);
       }
     };
-
     fetchRecipe();
   }, [id]);
 
-  useEffect(() => {
-    const fetchUserRating = async () => {
-      if (user) {
-        try {
-          const response = await fetch(
-            `/api/recipes/${id}/user-rating?username=${user.username}`
-          );
-          if (response.ok) {
-            const data = await response.json();
-            setUserRating(data.rating || null);
+  const sumIngredients = (steps) => {
+    const map = new Map();
+    steps.forEach(step => {
+      if (step.ingredients) {
+        step.ingredients.forEach(({ name, amount, unit }) => {
+          const key = `${name.toLowerCase()}|${unit || ""}`;
+          const numericAmount = parseFloat(amount);
+          if (!isNaN(numericAmount)) {
+            if (map.has(key)) {
+              map.get(key).amount += numericAmount;
+            } else {
+              map.set(key, { name, amount: numericAmount, unit });
+            }
           }
-        } catch (error) {
-          console.error("Błąd przy sprawdzaniu oceny użytkownika:", error);
-        }
+        });
       }
-    };
-
-    fetchUserRating();
-  }, [id, user]);
-
-  useEffect(() => {
-    const fetchFavoriteStatus = async () => {
-      if (user) {
-        try {
-          const response = await fetch(
-            `/api/recipes/${id}/is-favorite?username=${user.username}`
-          );
-          if (response.ok) {
-            const data = await response.json();
-            setIsFavorite(data.isFavorite);
-          }
-        } catch (error) {
-          console.error("Błąd przy sprawdzaniu ulubionych:", error);
-        }
-      }
-    };
-
-    fetchFavoriteStatus();
-  }, [id, user]);
-
-  function formatTime(seconds) {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins} min ${secs} s`;
-  }
-
-  useEffect(() => {
-    if (!showSlideshow || !isStepTimerRunning) return;
-
-    const currentStep = recipe?.steps?.[currentStepIndex];
-    if (!currentStep || !currentStep.duration) return;
-
-    let remaining = currentStep.duration;
-    setTimer(remaining);
-
-    const interval = setInterval(() => {
-      remaining -= 1;
-      setTimer(remaining);
-
-      if (remaining <= 0) {
-        clearInterval(interval);
-        setIsStepTimerRunning(false);
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [currentStepIndex, showSlideshow, recipe, isStepTimerRunning]);
+    });
+    return Array.from(map.values());
+  };
 
   const toggleFavorite = async () => {
     if (!user) {
       alert("Zaloguj się, aby dodawać do ulubionych!");
       return;
     }
-
     const method = isFavorite ? "DELETE" : "POST";
-
     try {
       const response = await fetch(`/api/recipes/${id}/favorite`, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: user.username }),
       });
-
-      if (response.ok) {
-        setIsFavorite(!isFavorite);
-      } else {
-        alert("Błąd przy aktualizacji ulubionych");
-      }
+      if (response.ok) setIsFavorite(!isFavorite);
+      else alert("Błąd przy aktualizacji ulubionych");
     } catch (err) {
       console.error("Błąd:", err);
     }
@@ -229,314 +155,138 @@ function Recipe() {
   if (loading) return <p>Ładowanie przepisu...</p>;
   if (!recipe) return <p>Nie znaleziono przepisu.</p>;
 
-  const rating =
-    recipe.rating && !isNaN(recipe.rating) ? parseFloat(recipe.rating) : 0;
+  const rating = recipe.rating && !isNaN(recipe.rating) ? parseFloat(recipe.rating) : 0;
+  const ingredientsSummary = sumIngredients(recipe.steps);
 
-  const currentStep = recipe?.steps?.[currentStepIndex];
-
-  const currentStepGif = currentStep
-    ? actionGifs[currentStep.action.toLowerCase()] || actionGifs.default
+  const currentStep = recipe.steps?.[currentStepIndex];
+  const currentStepGif = currentStep && currentStep.type === 'action'
+    ? (actionGifs[currentStep.action?.toLowerCase()] || actionGifs.default)
     : null;
-
-  function sumIngredients(ingredientsList) {
-    const map = new Map();
-
-    ingredientsList.forEach(({ name, amount, unit }) => {
-      if (!name || amount == null) return;
-
-      const numericAmount = parseFloat(amount); 
-
-      if (isNaN(numericAmount)) return;
-
-      const key = `${name.toLowerCase()}|${unit || ""}`;
-      if (map.has(key)) {
-        map.get(key).amount += numericAmount;
-      } else {
-        map.set(key, { name, amount: numericAmount, unit });
-      }
-    });
-
-    return Array.from(map.values());
-  }
-  
-  const totalIngredients = sumIngredients([
-    ...(recipe.ingredients || []),
-    ...recipe.steps.flatMap((step) => step.ingredients || []),
-  ]);
 
   return (
     <div className="container my-5">
       {error && <div className="alert alert-danger">{error}</div>}
-
       <div className="card shadow-sm p-4">
-        <h2 className="mb-3">{recipe.title}</h2>
-
+        <h2>{recipe.title}</h2>
         {recipe.image && (
-          <img
-            src={recipe.image}
-            alt={recipe.title}
-            className="img-fluid rounded mb-3"
-            style={{
-              maxWidth: "600px",
-              maxHeight: "400px",
-              objectFit: "cover",
-            }}
-          />
+          <img src={recipe.image} alt={recipe.title} className="img-fluid rounded my-3" style={{ maxHeight: "400px", objectFit: "cover" }} />
+        )}
+        <p className="lead">{recipe.description}</p>
+        <p><strong>Autor:</strong> {recipe.author}</p>
+
+        {user && user.username === recipe.author && (
+          <div className="mb-3">
+            <Link to={`/recipes/${id}/edit`} className="btn btn-outline-secondary me-2">Edytuj</Link>
+            <button className="btn btn-outline-danger" onClick={handleDeleteRecipe}>Usuń</button>
+          </div>
         )}
 
-        <p className="lead">{recipe.description}</p>
-
-        <p>
-          <strong>Autor:</strong> {recipe.author}
-          {user && user.username === recipe.author && (
-            <span className="ms-3">
-              <Link
-                to={`/recipes/${id}/edit`}
-                className="btn btn-sm btn-outline-secondary me-2"
-              >
-                Edytuj przepis
-              </Link>
-              <button
-                className="btn btn-sm btn-outline-danger"
-                onClick={handleDeleteRecipe}
-              >
-                Usuń przepis
-              </button>
-            </span>
-          )}
-        </p>
-
-        <button
-          onClick={toggleFavorite}
-          className={`btn ${
-            isFavorite ? "btn-danger" : "btn-outline-primary"
-          } mb-3`}
-        >
+        <button onClick={toggleFavorite} className={`btn ${isFavorite ? "btn-danger" : "btn-outline-primary"} mb-3`}>
           {isFavorite ? "Usuń z ulubionych" : "Dodaj do ulubionych"}
         </button>
 
-        <div className="mb-4">
-          <h3>Składnik</h3>
-          {totalIngredients.length ? (
-            <ul className="list-group list-group-flush">
-              {totalIngredients.map((ing, idx) => (
-                <li className="list-group-item" key={idx}>
-                  {ing.name}: {ing.amount} {ing.unit || ""}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>Brak składników</p>
-          )}
-        </div>
-
-        <div className="mb-4">
-          <h4>Kroki przygotowania</h4>
-          {recipe.steps?.length ? (
-            <ol className="ps-3">
-              {recipe.steps.map((step) => (
-                <li key={step.order} className="mb-2">
-                  <strong>{step.action}</strong>: {step.description}
-                  {(step.temperature || step.bladeSpeed || step.duration) && (
-                    <ul>
-                      {step.temperature && <li>Temperatura: {step.temperature}°C</li>}
-                      {step.bladeSpeed && <li>Prędkość ostrzy: {step.bladeSpeed}</li>}
-                      {step.duration && (
-                        <li>
-                          Czas: {Math.floor(step.duration / 60)} min {step.duration % 60} s{" "}
-                        </li>
-                      )}
-                    </ul>
-                  )}
-                  {step.ingredients && step.ingredients.length > 0 && (
-                    <>
-                      <strong>Składniki użyte w tym kroku:</strong>
-                      <ul>
-                        {step.ingredients.map((ing, idx) => (
-                          <li key={idx}>
-                            {ing.name}: {ing.amount} {ing.unit || ""}
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <p>Brak kroków przygotowania</p>
-          )}
-        </div>
-
-        <div>
-          <h5>Oceń przepis</h5>
-          <div>
-            {[1, 2, 3, 4, 5].map((star) => (
-              <span
-                key={star}
-                style={{
-                  fontSize: "2rem",
-                  cursor: userRating === null ? "pointer" : "default",
-                  color: star <= userRating ? "gold" : "#ccc",
-                  transition: "color 0.2s",
-                }}
-                onClick={() => userRating === null && handleRating(star)}
-                role="button"
-                aria-label={`Oceń na ${star} gwiazdek`}
-              >
-                ★
-              </span>
+        <h3>Składniki (łącznie):</h3>
+        {ingredientsSummary.length ? (
+          <ul className="list-group list-group-flush">
+            {ingredientsSummary.map((ing, idx) => (
+              <li key={idx} className="list-group-item">{ing.name}: {ing.amount} {ing.unit}</li>
             ))}
-          </div>
-          {rating > 0 ? (
-            <p className="mt-2 text-muted">
-              Średnia ocena: {rating.toFixed(1)} ({recipe.ratingCount} ocen)
-            </p>
-          ) : (
-            <p className="mt-2 text-muted">Brak ocen</p>
-          )}
+          </ul>
+        ) : <p>Brak składników</p>}
+
+        <h4 className="mt-4">Kroki przygotowania</h4>
+        <ol className="ps-3">
+          {recipe.steps.map((step, index) => (
+            <li key={index} className="mb-2">
+              <strong>
+                {step.type === "action" && `${step.action}: ${step.description}`}
+                {step.type === "ingredient" && `Dodanie składnika: ${step.description}`}
+                {step.type === "description" && step.description}
+              </strong>
+              {step.type === "action" && (
+                <ul>
+                  {step.temperature && <li>Temperatura: {step.temperature}°C</li>}
+                  {step.bladeSpeed && <li>Prędkość noża: {step.bladeSpeed}</li>}
+                  {step.duration && <li>Czas: {Math.floor(step.duration / 60)} min</li>}
+                </ul>
+              )}
+              {step.type === "ingredient" && step.ingredients?.length > 0 && (
+                <ul>
+                  {step.ingredients.map((ing, idx) => (
+                    <li key={idx}>{ing.name}: {ing.amount} {ing.unit}</li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
+        </ol>
+
+        <div className="my-4">
+          <h5>Oceń przepis</h5>
+          {[1,2,3,4,5].map(star => (
+            <span
+              key={star}
+              style={{ fontSize: "2rem", cursor: userRating === null ? "pointer" : "default", color: star <= userRating ? "gold" : "#ccc" }}
+              onClick={() => userRating === null && handleRating(star)}
+            >
+              ★
+            </span>
+          ))}
+          <p className="mt-2 text-muted">{rating > 0 ? `Średnia ocena: ${rating.toFixed(1)} (${recipe.ratingCount} ocen)` : "Brak ocen"}</p>
+        </div>
+
+        <div className="mt-3">
+          <button className="btn btn-outline-success me-2" onClick={handleExportToJSON}>Eksportuj do JSON</button>
+          <button className="btn btn-outline-warning" onClick={() => { setCurrentStepIndex(0); setShowSlideshow(true); setIsStepTimerRunning(false); setTimer(null); }}>Krok po kroku</button>
         </div>
       </div>
 
-      <div className="mt-4">
-        <button
-          className="btn btn-outline-success"
-          onClick={handleExportToJSON}
-        >
-          Eksportuj do JSON
-        </button>
-      </div>
-
-      <div className="mt-3">
-        <button
-          className="btn btn-outline-warning"
-          onClick={() => {
-            setCurrentStepIndex(0);
-            setShowSlideshow(true);
-            setIsStepTimerRunning(false);  
-            setTimer(null); 
-          }}
-        >
-          Krok po kroku
-        </button>
-      </div>
-
-      {/* Modal Krok po kroku */}
-      <Modal
-        show={showSlideshow}
-        onHide={() => setShowSlideshow(false)}
-        centered
-        size="lg"
-      >
+      {/* Slideshow */}
+      <Modal show={showSlideshow} onHide={() => setShowSlideshow(false)} centered size="lg">
         <Modal.Header closeButton>
-          <Modal.Title>
-            Krok {currentStepIndex + 1} z {recipe?.steps?.length}
-          </Modal.Title>
+          <Modal.Title>Krok {currentStepIndex + 1} z {recipe.steps.length}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {currentStep ? ( 
+          {currentStep ? (
             <div>
-              {/* NOWA ZMIANA: Wyświetlanie GIFa na podstawie mapowania */}
               {currentStepGif && (
-                <img
-                  src={currentStepGif}
-                  alt={`Krok ${currentStep.order} - ${currentStep.action}`}
-                  className="img-fluid rounded mb-3"
-                  style={{
-                    maxHeight: "400px",
-                    objectFit: "contain",
-                    width: "100%",
-                  }} 
-                />
+                <img src={currentStepGif} alt={currentStep.action} className="img-fluid mb-3" style={{ maxHeight: "400px", objectFit: "contain" }} />
               )}
-              {/* KONIEC NOWEJ ZMIANY */}
-
-              <h5>{currentStep.action}</h5>
-              <p>{currentStep.description}</p>
-
-              <ul>
-                {currentStep.temperature && (
-                  <li>Temperatura: {currentStep.temperature}°C</li>
-                )}
-                {currentStep.bladeSpeed && (
-                  <li>Prędkość ostrzy: {currentStep.bladeSpeed}</li>
-                )}
-                {currentStep.duration && (
-                  <li>
-                    Czas:{" "}
-                    {timer !== null ? (
-                      <strong>{formatTime(timer)}</strong>
-                    ) : (
-                      formatTime(currentStep.duration)
-                    )}
-                  </li>
-                )}
-              </ul>
-              {currentStep.ingredients && currentStep.ingredients.length > 0 && (
+              {currentStep.type === "action" && (
                 <>
-                  <h6>Składniki użyte w tym kroku:</h6>
+                  <h5>{currentStep.action}</h5>
+                  <p>{currentStep.description}</p>
+                  <ul>
+                    {currentStep.temperature && <li>Temperatura: {currentStep.temperature}°C</li>}
+                    {currentStep.bladeSpeed && <li>Prędkość: {currentStep.bladeSpeed}</li>}
+                    {currentStep.duration && <li>Czas: {Math.floor(currentStep.duration / 60)} min</li>}
+                  </ul>
+                </>
+              )}
+              {currentStep.type === "ingredient" && (
+                <>
+                  <h5>Dodanie składnika</h5>
+                  <p>{currentStep.description}</p>
                   <ul>
                     {currentStep.ingredients.map((ing, idx) => (
-                      <li key={idx}>
-                        {ing.name}: {ing.amount} {ing.unit || ""}
-                      </li>
+                      <li key={idx}>{ing.name}: {ing.amount} {ing.unit}</li>
                     ))}
                   </ul>
                 </>
               )}
-
-              <Button
-                variant="success"
-                onClick={() => {
-                  setIsStepTimerRunning(false); 
-                  setTimer(currentStep.duration || 0);
-                  setTimeout(() => setIsStepTimerRunning(true), 50);
-                }}
-                disabled={isStepTimerRunning && timer > 0} 
-              >
-                {isStepTimerRunning && timer > 0 ? "W trakcie..." : "Start"}
-              </Button>
+              {currentStep.type === "description" && (
+                <>
+                  <h5>Opis</h5>
+                  <p>{currentStep.description}</p>
+                </>
+              )}
             </div>
-          ) : (
-            <p>Brak danych kroku.</p>
-          )}
+          ) : <p>Brak danych kroku.</p>}
         </Modal.Body>
         <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setCurrentStepIndex((prev) => Math.max(0, prev - 1));
-              setIsStepTimerRunning(false);
-              setTimer(null); 
-            }}
-            disabled={currentStepIndex === 0}
-          >
-            Poprzedni
-          </Button>
-
-          <Button
-            variant="primary"
-            onClick={() => {
-              setCurrentStepIndex((prev) =>
-                Math.min(recipe.steps.length - 1, prev + 1)
-              );
-              setIsStepTimerRunning(false);
-              setTimer(null);
-            }}
-            disabled={currentStepIndex >= recipe.steps.length - 1}
-          >
-            Następny
-          </Button>
-          <Button
-            variant="danger"
-            onClick={() => {
-              setShowSlideshow(false);
-              setIsStepTimerRunning(false);
-              setTimer(null);
-            }}
-          >
-            Zakończ
-          </Button>
+          <Button variant="secondary" onClick={() => setCurrentStepIndex((prev) => Math.max(0, prev - 1))} disabled={currentStepIndex === 0}>Poprzedni</Button>
+          <Button variant="primary" onClick={() => setCurrentStepIndex((prev) => Math.min(recipe.steps.length - 1, prev + 1))} disabled={currentStepIndex >= recipe.steps.length - 1}>Następny</Button>
+          <Button variant="danger" onClick={() => setShowSlideshow(false)}>Zakończ</Button>
         </Modal.Footer>
       </Modal>
     </div>

@@ -28,6 +28,7 @@ function EditRecipe() {
   const [stepCustomIngredient, setStepCustomIngredient] = useState("");
   const [stepQuantity, setStepQuantity] = useState("");
   const [stepUnit, setStepUnit] = useState("g");
+  const [stepType, setStepType] = useState("");
 
   const allowedUnits = ["g", "ml", "l", "szt"];
 
@@ -142,41 +143,70 @@ function EditRecipe() {
   };
 
   const handleAddStep = () => {
-    const { action, description, temperature, bladeSpeed, duration, ingredients } =
-      currentStep;
-    if (!action || !description.trim()) {
-      setMessage("Uzupełnij czynność i opis kroku.");
-      return;
+    let newStep = {};
+
+    if (stepType === "action") {
+      const { action, description, temperature, bladeSpeed, duration } = currentStep;
+
+      if (!action || !description.trim()) {
+        setMessage("Uzupełnij czynność i opis kroku.");
+        return;
+      }
+
+      newStep = {
+        type: "action",
+        action,
+        description: description.trim(),
+        temperature: temperature ? parseInt(temperature) : null,
+        bladeSpeed: bladeSpeed ? parseInt(bladeSpeed) : null,
+        duration: duration ? parseInt(duration) * 60 : null,
+        ingredients: currentStep.ingredients
+      };
     }
 
-    if (ingredients.length === 0) {
-      setMessage("Dodaj przynajmniej jeden składnik do kroku.");
-      return;
+    else if (stepType === "ingredient") {
+      const name = stepCustomIngredient.trim() || stepSelectedIngredient;
+      const qty = stepQuantity.trim();
+
+      if (!name) {
+        setMessage("Proszę wybrać lub wpisać składnik.");
+        return;
+      }
+      const num = parseFloat(qty);
+      if (isNaN(num) || num <= 0) {
+        setMessage("Wprowadź poprawną ilość.");
+        return;
+      }
+
+      newStep = {
+        type: "ingredient",
+        description: currentStep.description || "",
+        ingredients: [{ name, amount: num, unit: stepUnit }]
+      };
     }
 
-    const parsedSpeed = bladeSpeed ? parseInt(bladeSpeed) : null;
-    if (parsedSpeed !== null && (parsedSpeed < 0 || parsedSpeed > 10)) {
-      setMessage("Prędkość noża musi być od 0 do 10.");
-      return;
+    else if (stepType === "description") {
+      if (!currentStep.description) {
+        setMessage("Dodaj opis.");
+        return;
+      }
+
+      newStep = {
+        type: "description",
+        description: currentStep.description
+      };
     }
 
-    const newStep = {
-      action,
-      description: description.trim(),
-      temperature: temperature ? parseInt(temperature) : null,
-      bladeSpeed: parsedSpeed,
-      duration: duration ? parseInt(duration) * 60 : null,
-      ingredients,
-    };
+    setSteps(prev => [...prev, newStep]);
 
-    setSteps((prev) => [...prev, newStep]);
+    setStepType("");
     setCurrentStep({
       action: "",
       description: "",
       temperature: "",
       bladeSpeed: "",
       duration: "",
-      ingredients: [],
+      ingredients: []
     });
     setStepSelectedCategory("");
     setStepIngredients([]);
@@ -190,13 +220,14 @@ function EditRecipe() {
   const handleEditStep = (index) => {
     const stepToEdit = steps[index];
     setCurrentStep({
-      action: stepToEdit.action,
-      description: stepToEdit.description,
+      action: stepToEdit.action || "",
+      description: stepToEdit.description || "",
       temperature: stepToEdit.temperature ? stepToEdit.temperature.toString() : "",
       bladeSpeed: stepToEdit.bladeSpeed ? stepToEdit.bladeSpeed.toString() : "",
       duration: stepToEdit.duration ? (stepToEdit.duration / 60).toString() : "",
-      ingredients: [...stepToEdit.ingredients],
+      ingredients: [...(stepToEdit.ingredients || [])],
     });
+    setStepType(stepToEdit.type || "");
     
     handleRemoveStep(index);
   };
@@ -302,191 +333,259 @@ function EditRecipe() {
           ></textarea>
         </div>
 
-        {/* Dodawanie/edycja kroku */}
-        <h2 className="mt-4 mb-3">{currentStep.action ? "Edytuj krok" : "Dodaj nowy krok"}</h2>
+        <h2 className="mt-4 mb-3">Dodaj krok przygotowania</h2>
+
+        {/* Wybór typu kroku */}
         <div className="mb-3">
-          <label htmlFor="stepAction" className="form-label">
-            Czynność
-          </label>
+          <label className="form-label">Typ kroku</label>
           <select
             className="form-select"
-            id="stepAction"
-            value={currentStep.action}
-            onChange={(e) =>
-              setCurrentStep((prev) => ({ ...prev, action: e.target.value }))
-            }
+            value={stepType}
+            onChange={(e) => {
+              setStepType(e.target.value);
+              setCurrentStep({
+                action: "",
+                description: "",
+                temperature: "",
+                bladeSpeed: "",
+                duration: "",
+                ingredients: [],
+              });
+            }}
           >
-            <option value="">Wybierz czynność</option>
-            <option value="siekanie">Siekanie</option>
-            <option value="mieszanie">Mieszanie</option>
-            <option value="gotowanie">Gotowanie</option>
-            <option value="pieczenie">Pieczenie</option>
-            <option value="blendowanie">Blendowanie</option>
-            <option value="podgrzewanie">Podgrzewanie</option>
+            <option value="">Wybierz typ kroku</option>
+            <option value="action">Akcyjny</option>
+            <option value="ingredient">Składnikowy</option>
+            <option value="description">Opisowy</option>
           </select>
         </div>
-        <div className="mb-3">
-          <label htmlFor="stepDescription" className="form-label">
-            Opis czynności
-          </label>
-          <textarea
-            id="stepDescription"
-            className="form-control"
-            rows="3"
-            value={currentStep.description}
-            onChange={(e) =>
-              setCurrentStep((prev) => ({ ...prev, description: e.target.value }))
-            }
-          ></textarea>
-        </div>
-        <div className="row mb-3">
-          <div className="col-md-3">
-            <label htmlFor="temperature" className="form-label">
-              Temperatura (°C)
-            </label>
-            <input
-              type="number"
-              id="temperature"
-              className="form-control"
-              value={currentStep.temperature}
-              onChange={(e) =>
-                setCurrentStep((prev) => ({ ...prev, temperature: e.target.value }))
-              }
-              min="0"
-              max="300"
-              placeholder="np. 100"
-            />
-          </div>
-          <div className="col-md-3">
-            <label htmlFor="bladeSpeed" className="form-label">
-              Prędkość noża (0-10)
-            </label>
-            <input
-              type="number"
-              id="bladeSpeed"
-              className="form-control"
-              value={currentStep.bladeSpeed}
-              onChange={(e) =>
-                setCurrentStep((prev) => ({ ...prev, bladeSpeed: e.target.value }))
-              }
-              min="0"
-              max="10"
-              placeholder="np. 5"
-            />
-          </div>
-          <div className="col-md-3">
-            <label htmlFor="duration" className="form-label">
-              Czas trwania (min)
-            </label>
-            <input
-              type="number"
-              id="duration"
-              className="form-control"
-              value={currentStep.duration}
-              onChange={(e) =>
-                setCurrentStep((prev) => ({ ...prev, duration: e.target.value }))
-              }
-              min="1"
-              placeholder="np. 10"
-            />
-          </div>
-        </div>
 
-        {/* Składniki do kroku */}
-        <h3 className="mb-3">Składniki kroku</h3>
-        <div className="row mb-3">
-          <div className="col-md-3">
-            <label htmlFor="stepCategory" className="form-label">
-              Kategoria składnika
-            </label>
-            <select
-              id="stepCategory"
-              className="form-select"
-              value={stepSelectedCategory}
-              onChange={handleStepCategoryChange}
-            >
-              <option value="">Wybierz kategorię</option>
-              {categories.map((cat) => (
-                <option key={cat._id} value={cat.name}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="col-md-3">
-            <label htmlFor="stepIngredient" className="form-label">
-              Składnik
-            </label>
-            <select
-              id="stepIngredient"
-              className="form-select"
-              value={stepSelectedIngredient}
-              onChange={(e) => {
-                setStepSelectedIngredient(e.target.value);
-                setStepCustomIngredient("");
-              }}
-              disabled={!stepSelectedCategory}
-            >
-              <option value="">Wybierz składnik</option>
-              {stepIngredients.map((ing) => (
-                <option key={ing._id || ing.name} value={ing.name}>
-                  {ing}
-                </option>
-              ))}
-            </select>
-            <div className="form-text">Lub wpisz własny składnik:</div>
-            <input
-              type="text"
-              className="form-control mt-1"
-              placeholder="Własny składnik"
-              value={stepCustomIngredient}
-              onChange={(e) => {
-                setStepCustomIngredient(e.target.value);
-                setStepSelectedIngredient("");
-              }}
-            />
-          </div>
-          <div className="col-md-2">
-            <label htmlFor="stepQuantity" className="form-label">
-              Ilość
-            </label>
-            <input
-              type="number"
-              id="stepQuantity"
-              className="form-control"
-              value={stepQuantity}
-              onChange={(e) => setStepQuantity(e.target.value)}
-              min="0.01"
-              step="0.01"
-            />
-          </div>
-          <div className="col-md-2">
-            <label htmlFor="stepUnit" className="form-label">
-              Jednostka
-            </label>
-            <select
-              id="stepUnit"
-              className="form-select"
-              value={stepUnit}
-              onChange={(e) => setStepUnit(e.target.value)}
-            >
-              {allowedUnits.map((unit) => (
-                <option key={unit} value={unit}>
-                  {unit}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="col-md-2 d-flex align-items-end">
-            <button
-              type="button"
-              className="btn btn-secondary w-100"
-              onClick={handleAddStepIngredient}
-            >
-              Dodaj składnik
-            </button>
-          </div>
-        </div>
+        {stepType === "action" && (
+          <>
+            <div className="mb-3">
+              <label htmlFor="stepAction" className="form-label">
+                Czynność
+              </label>
+              <select
+                className="form-select"
+                id="stepAction"
+                value={currentStep.action}
+                onChange={(e) =>
+                  setCurrentStep((prev) => ({ ...prev, action: e.target.value }))
+                }
+              >
+                <option value="">Wybierz czynność</option>
+                <option value="siekanie">Siekanie</option>
+                <option value="mieszanie">Mieszanie</option>
+                <option value="gotowanie">Gotowanie</option>
+                <option value="pieczenie">Pieczenie</option>
+                <option value="smażenie">Smażenie</option>
+              </select>
+            </div>
+
+            <div className="mb-3">
+              <label htmlFor="stepDescription" className="form-label">
+                Opis czynności
+              </label>
+              <textarea
+                id="stepDescription"
+                className="form-control"
+                rows="3"
+                value={currentStep.description}
+                onChange={(e) =>
+                  setCurrentStep((prev) => ({ ...prev, description: e.target.value }))
+                }
+              ></textarea>
+            </div>
+
+            <div className="row mb-3">
+              <div className="col-md-3">
+                <label htmlFor="temperature" className="form-label">
+                  Temperatura (°C)
+                </label>
+                <input
+                  type="number"
+                  id="temperature"
+                  className="form-control"
+                  value={currentStep.temperature}
+                  onChange={(e) =>
+                    setCurrentStep((prev) => ({ ...prev, temperature: e.target.value }))
+                  }
+                  min="0"
+                  max="300"
+                  placeholder="np. 100"
+                />
+              </div>
+              <div className="col-md-3">
+                <label htmlFor="bladeSpeed" className="form-label">
+                  Prędkość noża (0-10)
+                </label>
+                <input
+                  type="number"
+                  id="bladeSpeed"
+                  className="form-control"
+                  value={currentStep.bladeSpeed}
+                  onChange={(e) =>
+                    setCurrentStep((prev) => ({ ...prev, bladeSpeed: e.target.value }))
+                  }
+                  min="0"
+                  max="10"
+                  placeholder="np. 5"
+                />
+              </div>
+              <div className="col-md-3">
+                <label htmlFor="duration" className="form-label">
+                  Czas trwania (min)
+                </label>
+                <input
+                  type="number"
+                  id="duration"
+                  className="form-control"
+                  value={currentStep.duration}
+                  onChange={(e) =>
+                    setCurrentStep((prev) => ({ ...prev, duration: e.target.value }))
+                  }
+                  min="1"
+                  placeholder="np. 10"
+                />
+              </div>
+            </div>
+          </>
+        )}
+
+        {stepType === "ingredient" && (
+          <>
+            <div className="mb-3">
+              <label className="form-label">Opis kroku (opcjonalnie)</label>
+              <input
+                type="text"
+                className="form-control"
+                value={currentStep.description}
+                onChange={(e) =>
+                  setCurrentStep((prev) => ({ ...prev, description: e.target.value }))
+                }
+              />
+            </div>
+
+            <div className="row mb-3">
+              <div className="col-md-3">
+                <label htmlFor="ingredientCategory" className="form-label">
+                  Kategoria składnika
+                </label>
+                <select
+                  id="ingredientCategory"
+                  className="form-select"
+                  value={stepSelectedCategory}
+                  onChange={(e) => {
+                    const categoryName = e.target.value;
+                    setStepSelectedCategory(categoryName);
+                    const category = categories.find((c) => c.name === categoryName);
+                    setStepIngredients(category ? category.items : []);
+                    setStepSelectedIngredient("");
+                  }}
+                >
+                  <option value="">Wybierz kategorię</option>
+                  {categories.map((cat) => (
+                    <option key={cat._id} value={cat.name}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="col-md-3">
+                <label htmlFor="ingredientName" className="form-label">
+                  Składnik
+                </label>
+                <select
+                  id="ingredientName"
+                  className="form-select"
+                  value={stepSelectedIngredient}
+                  onChange={(e) => {
+                    setStepSelectedIngredient(e.target.value);
+                    setStepCustomIngredient("");
+                  }}
+                  disabled={!stepSelectedCategory}
+                >
+                  <option value="">Wybierz składnik</option>
+                  {stepIngredients.map((ing) => (
+                    <option key={ing._id || ing.name} value={ing.name}>
+                      {ing}
+                    </option>
+                  ))}
+                </select>
+                <div className="form-text">Lub wpisz własny składnik:</div>
+                <input
+                  type="text"
+                  className="form-control mt-1"
+                  placeholder="Własny składnik"
+                  value={stepCustomIngredient}
+                  onChange={(e) => {
+                    setStepCustomIngredient(e.target.value);
+                    setStepSelectedIngredient("");
+                  }}
+                />
+              </div>
+
+              <div className="col-md-2">
+                <label htmlFor="ingredientQuantity" className="form-label">
+                  Ilość
+                </label>
+                <input
+                  type="number"
+                  id="ingredientQuantity"
+                  className="form-control"
+                  value={stepQuantity}
+                  onChange={(e) => setStepQuantity(e.target.value)}
+                  min="0.01"
+                  step="0.01"
+                />
+              </div>
+
+              <div className="col-md-2">
+                <label htmlFor="ingredientUnit" className="form-label">
+                  Jednostka
+                </label>
+                <select
+                  id="ingredientUnit"
+                  className="form-select"
+                  value={stepUnit}
+                  onChange={(e) => setStepUnit(e.target.value)}
+                >
+                  {allowedUnits.map((unit) => (
+                    <option key={unit} value={unit}>
+                      {unit}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </>
+        )}
+
+        {stepType === "description" && (
+          <>
+            <div className="mb-3">
+              <label className="form-label">Opis kroku</label>
+              <textarea
+                className="form-control"
+                rows="3"
+                value={currentStep.description}
+                onChange={(e) =>
+                  setCurrentStep((prev) => ({ ...prev, description: e.target.value }))
+                }
+              ></textarea>
+            </div>
+          </>
+        )}
+
+        <button
+          type="button"
+          className="btn btn-primary mb-4"
+          onClick={handleAddStep}
+        >
+          Dodaj krok
+        </button>
 
         {/* Lista składników kroku */}
         {currentStep.ingredients.length > 0 && (
@@ -512,42 +611,25 @@ function EditRecipe() {
           </div>
         )}
 
-        <button
-          type="button"
-          className="btn btn-primary mb-4"
-          onClick={handleAddStep}
-        >
-          {currentStep.action ? "Zaktualizuj krok" : "Dodaj krok"}
-        </button>
-
         {/* Lista wszystkich kroków */}
         {steps.length > 0 && (
           <>
             <h2 className="mb-3">Lista kroków przygotowania</h2>
             <ul className="list-group mb-4">
               {steps.map((step, index) => (
-                <li
-                  key={index}
-                  className="list-group-item d-flex flex-column"
-                >
+                <li key={index} className="list-group-item d-flex flex-column">
                   <div className="d-flex justify-content-between align-items-center">
                     <strong>
-                      {index + 1}. {step.action} - {step.description}
+                      {index + 1}.{" "}
+                      {step.type === "action" && `${step.action} - ${step.description}`}
+                      {step.type === "ingredient" && `${step.description} (dodano składnik)`}
+                      {step.type === "description" && `${step.description}`}
                     </strong>
                     <div className="d-flex gap-2 mt-2">
                       <button
                         type="button"
-                        className="btn btn-sm btn-info me-1"
-                        onClick={() => handleEditStep(index)}
-                        title="Edytuj krok"
-                      >
-                        Edytuj
-                      </button>
-                      <button
-                        type="button"
                         className="btn btn-danger btn-sm"
                         onClick={() => handleRemoveStep(index)}
-                        title="Usuń krok"
                       >
                         Usuń
                       </button>
@@ -556,7 +638,6 @@ function EditRecipe() {
                         className="btn btn-success btn-sm"
                         onClick={() => moveStepUp(index)}
                         disabled={index === 0}
-                        title="Przesuń w górę"
                       >
                         Przesuń w górę
                       </button>
@@ -565,37 +646,42 @@ function EditRecipe() {
                         className="btn btn-success btn-sm"
                         onClick={() => moveStepDown(index)}
                         disabled={index === steps.length - 1}
-                        title="Przesuń w dół"
                       >
                         Przesuń w dół
                       </button>
                     </div>
                   </div>
-                  <div>
-                    {step.temperature !== null && (
-                      <small>Temperatura: {step.temperature} °C</small>
-                    )}
-                    {step.bladeSpeed !== null && (
-                      <small className="ms-3">
-                        Prędkość noża: {step.bladeSpeed}
-                      </small>
-                    )}
-                    {step.duration !== null && (
-                      <small className="ms-3">
-                        Czas: {Math.round(step.duration / 60)} minut
-                      </small>
-                    )}
-                  </div>
-                  <div className="mt-2">
-                    <strong>Składniki:</strong>
-                    <ul>
-                      {step.ingredients.map((ing, i) => (
-                        <li key={i}>
-                          {ing.name} - {ing.amount} {ing.unit}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+
+                  {/* Dodatkowe informacje dla kroku akcyjnego */}
+                  {step.type === "action" && (
+                    <div>
+                      {step.temperature !== null && (
+                        <small>Temperatura: {step.temperature} °C</small>
+                      )}
+                      {step.bladeSpeed !== null && (
+                        <small className="ms-3">Prędkość noża: {step.bladeSpeed}</small>
+                      )}
+                      {step.duration !== null && (
+                        <small className="ms-3">
+                          Czas: {Math.round(step.duration / 60)} minut
+                        </small>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Składniki wyłącznie dla kroku ingredient */}
+                  {step.type === "ingredient" && step.ingredients && (
+                    <div className="mt-2">
+                      <strong>Składniki:</strong>
+                      <ul>
+                        {step.ingredients.map((ing, i) => (
+                          <li key={i}>
+                            {ing.name} - {ing.amount} {ing.unit}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
