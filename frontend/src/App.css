@@ -91,6 +91,12 @@ main {
   width: 100%;
 }
 
+form {
+  width: 100%; /* Upewnij się, że formularz zajmuje całą dostępną szerokość */
+  max-width: 1200px; /* Opcjonalnie: ustaw maksymalną szerokość, aby nie był zbyt rozciągnięty na bardzo dużych ekranach */
+  padding: 0 15px; /* Dodaj padding, aby treść nie "dotykała" krawędzi ekranu */
+}
+
 .button {
   margin-top: 1.5rem;
   padding: 0.75rem 1.5rem;
