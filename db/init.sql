@@ -72,8 +72,8 @@ CREATE TABLE IF NOT EXISTS catalog_ingredients (
 INSERT INTO ingredient_categories (name) VALUES
 ('Warzywa'),
 ('Owoce'),
-('Nabial'),
-('Mieso'),
+('Nabiał'),
+('Mięso'),
 ('Przyprawy');
 
 INSERT INTO catalog_ingredients (category_id, name) VALUES
@@ -81,16 +81,19 @@ INSERT INTO catalog_ingredients (category_id, name) VALUES
 (1, 'Pomidory'),
 (1, 'Cebula'),
 (1, 'Papryka'),
-(2, 'Jablko'),
+(2, 'Jabłko'),
 (2, 'Banan'),
 (2, 'Truskawki'),
-(3, 'Ser zolty'),
-(3, 'Maslo'),
+(3, 'Ser żołty'),
+(3, 'Masło'),
 (3, 'Jogurt naturalny'),
 (4, 'Kurczak'),
 (4, 'Wolowina'),
 (4, 'Wieprzowina'),
-(5, 'Sol'),
+(5, 'Sól'),
 (5, 'Pieprz'),
-(5, 'Papryka slodka'),
+(5, 'Papryka słodka'),
 (5, 'Czosnek w proszku');
+
+UPDATE ingredient_categories SET name = CONVERT(BINARY CONVERT(name USING latin1) USING utf8mb4);
+UPDATE catalog_ingredients SET name = CONVERT(BINARY CONVERT(name USING latin1) USING utf8mb4);
