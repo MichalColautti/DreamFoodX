@@ -70,12 +70,12 @@ function Recipe() {
     
     const timerId = setInterval(() => {
       setTimeLeft(prevTime => {
-        if (prevTime <= 1) {
+        if (prevTime <= 40) {
           clearInterval(timerId);
           setIsStepTimerRunning(false);
           return 0;
         }
-        return prevTime - 1;
+        return prevTime - 40;
       });
     }, 1000);
     
