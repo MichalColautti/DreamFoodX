@@ -1,32 +1,45 @@
+import React from "react";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import Home from "./pages/Home";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
+import My_recipes from "./pages/My_recipes";
+import User_profile from "./pages/User_profile";
+import Favorites from "./pages/Favorites";
+import New_recipe from "./pages/New_recipe";
+import Header from "./components/Header"; // Możliwe że tu bedzie wyświetlał się błąd, ale to normalne
+import Footer from "./components/Footer";
+import Profile from "./pages/Profile";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import "./App.css";
+import { AuthProvider } from "./AuthContext";
+import SearchResults from "./pages/SearchResults";
+import Recipe from './pages/Recipe';
+import Edit_recipe from './pages/EditRecipe';
 
 function App() {
   return (
     <Router>
-      <div>
-        <nav>
-          <ul>
-            <li>
-              <Link to="/">Home</Link>
-            </li>
-            <li>
-              <Link to="/about">About</Link>
-            </li>
-            <li>
-              <Link to="/contact">Contact</Link>
-            </li>
-          </ul>
-        </nav>
-
+      <AuthProvider>
+        <Header />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/my-recipes" element={<My_recipes />} />
+          <Route path="/new-recipe" element={<New_recipe />} />
+          <Route path="/user-profile" element={<User_profile />} />
+          <Route path="/favorites" element={<Favorites />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/search" element={<SearchResults />} />
+          <Route path="/recipe/:id" element={<Recipe />} />
+          <Route path="/recipes/:id/edit" element={<Edit_recipe />} />
         </Routes>
-      </div>
+        <Footer />
+      </AuthProvider>
     </Router>
   );
 }

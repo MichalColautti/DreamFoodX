@@ -1,42 +1,165 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+:root {
+  --icon-color: #333333;
+  --icon-hover-color: #747474;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.nav-link {
+  color: #333333 !important;
+  text-decoration: none;
+  position: relative;
+  transition: color 0.5s ease;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.nav-link:hover {
+  color: #747474 !important;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.nav-link::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background-color: #7a7a7a;
+  transition: width 0.5s ease;
 }
 
-.card {
-  padding: 2em;
+.nav-link:hover::after {
+  width: 100%;
 }
 
-.read-the-docs {
-  color: #888;
+.btn-link svg {
+  color: var(--icon-color);
+  transition: color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-link:hover svg {
+  color: var(--icon-hover-color);
+}
+
+.search-wrapper {
+  max-width: 400px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.search-wrapper input.form-control {
+  transition: padding-left 0.3s ease, border-color 0.3s ease;
+}
+
+.search-wrapper input.form-control:focus {
+  padding-left: 2.5rem;
+}
+
+.search-wrapper button {
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  transform: translateY(-50%);
+  padding: 0;
+  background: transparent;
+  border: none;
+  z-index: 2;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-wrapper button svg {
+  transition: transform 0.4s ease, color 0.4s ease;
+  transform: scale(1);
+  color: #555;
+}
+
+.search-wrapper input.form-control:focus ~ button svg {
+  transform: scale(1.2);
+  color: var(--icon-hover-color);
+}
+
+footer a {
+  text-decoration: none;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+form {
+  width: 100%; /* Upewnij się, że formularz zajmuje całą dostępną szerokość */
+  max-width: 1200px; /* Opcjonalnie: ustaw maksymalną szerokość, aby nie był zbyt rozciągnięty na bardzo dużych ekranach */
+  padding: 0 15px; /* Dodaj padding, aby treść nie "dotykała" krawędzi ekranu */
+}
+
+.button {
+  margin-top: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  background-color: #f97316;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.button:hover {
+  background-color: #f05e0f;
+  transform: scale(1.05);
+}
+
+.small-button {
+  padding: 4px 8px;
+  font-size: 14px;
+  margin-right: 6px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.small-button:hover:enabled {
+  background-color: #0056b3;
+}
+
+.small-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Custom CSS for Dream Food X section */
+.dream-food-x-section .small-text {
+  font-size: 0.9rem; /* Adjust font size for better readability */
+  line-height: 1.6; /* Adjust line height for better spacing */
+  color: #555;
+}
+
+.dream-food-x-section ul {
+  list-style: disc inside; /* Add bullet points */
+  padding-left: 1rem;
+  margin-top: 0.5rem;
+  color: #555;
+}
+
+.dream-food-x-section ul li {
+  margin-bottom: 0.25rem;
+}
+
+.text-orange-600 {
+  color: #f97316; /* Tailwind's orange-600 color for consistency if not already defined by Tailwind */
+}
+
+/* Ensure the image takes full width within its column and is responsive */
+.dream-food-x-section img {
+  max-width: 100%;
+  height: auto;
 }
