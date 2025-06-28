@@ -637,7 +637,7 @@ app.get("/api/recipes/:id", async (req, res) => {
     const [recipeResults] = await db
       .promise()
       .execute(
-        "SELECT id, title, description, author, image FROM recipes WHERE id = ?",
+        "SELECT id, title, description, author, image, rating FROM recipes WHERE id = ?",
         [recipeId]
       );
     if (recipeResults.length === 0) {

@@ -162,6 +162,25 @@ function Recipe() {
         if (response.ok) {
           const data = await response.json();
           setRecipe(data);
+
+          if (user) {
+            const [favoriteRes, ratingRes] = await Promise.all([
+              fetch(`/api/recipes/${id}/is-favorite?username=${user.username}`),
+              fetch(`/api/recipes/${id}/user-rating?username=${user.username}`)
+            ]);
+
+            if (favoriteRes.ok) {
+              const favData = await favoriteRes.json();
+              setIsFavorite(favData.isFavorite);
+            }
+
+            if (ratingRes.ok) {
+              const rateData = await ratingRes.json();
+              if (rateData.rating != null) {
+                setUserRating(rateData.rating);
+              }
+            }
+          }
         } else {
           setRecipe(null);
         }
@@ -174,7 +193,7 @@ function Recipe() {
       }
     };
     fetchRecipe();
-  }, [id]);
+  }, [id, user]);
 
   const sumIngredients = (steps) => {
     const map = new Map();
@@ -301,7 +320,7 @@ function Recipe() {
               ★
             </span>
           ))}
-          <p className="mt-2 text-muted">{rating > 0 ? `Średnia ocena: ${rating.toFixed(1)} (${recipe.ratingCount} ocen)` : "Brak ocen"}</p>
+          <p className="mt-2 text-muted">{rating > 0 ? `Średnia ocena: ${rating.toFixed(1)}` : "Brak ocen"}</p>
         </div>
 
         <div className="mt-3">
